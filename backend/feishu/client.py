@@ -1,4 +1,4 @@
-﻿"""飞书 API 客户端（统一封装调用）。"""
+"""飞书 API 客户端（统一封装调用）。"""
 import httpx
 
 from config.settings import settings
@@ -30,7 +30,7 @@ class FeishuClient:
             },
             timeout=10,
         )
-        data = _unwrap(resp)
+        data = _unwrap(resp, "换取 user_access_token")
         return {
             "access_token": data["access_token"],
             "refresh_token": data.get("refresh_token", ""),
@@ -44,7 +44,7 @@ class FeishuClient:
             headers={"Authorization": f"Bearer {access_token}"},
             timeout=10,
         )
-        data = _unwrap(resp)
+        data = _unwrap(resp, "获取用户信息")
         return {
             "open_id": data["open_id"],
             "name": data.get("name", ""),
@@ -52,9 +52,14 @@ class FeishuClient:
         }
 
 
-def _unwrap(resp: httpx.Response) -> dict:
+def _unwrap(resp: httpx.Response, context: str = "") -> dict:
     resp.raise_for_status()
-    body = resp.json()
+    try:
+        body = resp.json()
+    except ValueError:
+        raise FeishuError(f"飞书接口响应不是 JSON（{context}）：{resp.text[:200]}") from None
     if body.get("code", 0) != 0:
-        raise FeishuError(f"飞书接口错误：{body.get('msg', '未知错误')}")
+        raise FeishuError(
+            f"飞书接口错误（{context}）：code={body.get('code')}, msg={body.get('msg')!r}, body={body}"
+        )
     return body["data"]
