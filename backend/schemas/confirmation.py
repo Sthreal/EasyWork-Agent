@@ -1,1 +1,20 @@
-﻿"""确认请求/响应结构"""
+"""确认请求/响应结构。"""
+from pydantic import BaseModel
+
+
+class ConfirmationResponse(BaseModel):
+    id: int
+    task_id: str | None
+    action: str
+    target: str
+    params: str
+    status: str
+    created_at: str | None = None
+
+
+class ConfirmationListResponse(BaseModel):
+    items: list[ConfirmationResponse] = []
+
+
+class ConfirmationDecideRequest(BaseModel):
+    approve: bool
