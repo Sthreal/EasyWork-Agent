@@ -10,6 +10,7 @@ export interface TaskResult {
   status: string
   text: string
   tasks: TaskItem[]
+  question?: string | null
 }
 
 export async function createTask(text: string): Promise<TaskResult> {

@@ -29,7 +29,7 @@
 | M1-5 | 对话页基础 ✅ | `frontend/src/pages/ChatPage.vue`、`frontend/src/components/TaskInput.vue`、`frontend/src/api/task.ts` | 能输入并提交任务文本 |
 | M1-6 | 大模型封装 ✅ | `backend/llm/client.py`、`backend/llm/messages.py` | 统一调模型，错误可处理 |
 | M1-7 | 意图拆解 ✅ | `backend/agent/planner.py`、`config/prompts/planner.md` | 一句话 → 结构化子任务列表 |
-| M1-8 | 反问澄清 | `backend/agent/clarify.py`、`config/prompts/clarify.md` | 信息不足时反问，补齐后再拆解 |
+| M1-8 | 反问澄清 ✅ | `backend/agent/clarify.py`、`config/prompts/clarify.md` | 信息不足时反问，补齐后再拆解 |
 | M1-9 | 任务落库与查询 | `backend/models/task.py`、`backend/api/v1/task.py`、`backend/schemas/task.py` | 任务/子任务可保存、可查 |
 
 **M1 完成标志**：登录 → 输入 → （反问）→ 子任务列表落库，全链路通。

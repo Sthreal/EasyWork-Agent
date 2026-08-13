@@ -8,10 +8,19 @@ const props = defineProps({ user: { type: Object, required: true } })
 const emit = defineEmits(['logout'])
 
 const messages = ref([])
+const pendingContext = ref(null) // 正在等用户澄清：{ text }
 
 async function handleSubmit(text) {
-  const result = await createTask(text)
-  messages.value.push({ text, ...result })
+  let submitText = text
+  if (pendingContext.value) {
+    submitText = `${pendingContext.value.text}，补充：${text}`
+    pendingContext.value = null
+  }
+  const result = await createTask(submitText)
+  messages.value.push({ text: submitText, ...result })
+  if (result.status === 'need_clarify') {
+    pendingContext.value = { text: submitText }
+  }
 }
 </script>
 

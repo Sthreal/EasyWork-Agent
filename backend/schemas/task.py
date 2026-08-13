@@ -18,3 +18,4 @@ class TaskResponse(BaseModel):
     status: str
     text: str
     tasks: list[TaskItem] = []
+    question: str | None = None

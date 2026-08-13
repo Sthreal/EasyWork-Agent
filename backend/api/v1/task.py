@@ -17,6 +17,13 @@ def list_tasks():
 
 @router.post("", response_model=TaskResponse)
 def create_task(payload: TaskCreate):
-    """接收任务 → 意图拆解 → 返回子任务列表（执行 M2 接入）。"""
-    tasks = plan(payload.text)
-    return TaskResponse(task_id=str(uuid.uuid4()), status="planned", text=payload.text, tasks=tasks)
+    """接收任务 → 意图拆解 → 需要澄清则反问，否则返回子任务列表。"""
+    result = plan(payload.text)
+    status = "need_clarify" if result["question"] else "planned"
+    return TaskResponse(
+        task_id=str(uuid.uuid4()),
+        status=status,
+        text=payload.text,
+        tasks=result["tasks"],
+        question=result["question"],
+    )
