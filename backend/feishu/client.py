@@ -5,6 +5,7 @@ from config.settings import settings
 
 FEISHU_OPEN_BASE = "https://open.feishu.cn/open-apis"
 FEISHU_ACCOUNTS_BASE = "https://accounts.feishu.cn/open-apis"
+FEISHU_OAUTH_TOKEN_URL = "https://accounts.feishu.cn/oauth/v3/token"
 
 
 class FeishuError(RuntimeError):
@@ -19,22 +20,23 @@ class FeishuClient:
         self.app_secret = app_secret or settings.feishu_app_secret
 
     def get_user_access_token(self, code: str) -> dict:
-        """用授权码换 user_access_token（POST /authen/v1/oidc/access_token）。"""
+        """用授权码换 user_access_token（新版 OAuth2：POST /oauth/v3/token）。"""
         resp = httpx.post(
-            f"{FEISHU_OPEN_BASE}/authen/v1/oidc/access_token",
+            FEISHU_OAUTH_TOKEN_URL,
             json={
                 "grant_type": "authorization_code",
-                "code": code,
                 "client_id": self.app_id,
                 "client_secret": self.app_secret,
+                "code": code,
+                "redirect_uri": settings.feishu_redirect_uri,
             },
             timeout=10,
         )
-        data = _unwrap(resp, "换取 user_access_token")
+        body = _unwrap(resp, "换取 user_access_token")
         return {
-            "access_token": data["access_token"],
-            "refresh_token": data.get("refresh_token", ""),
-            "expires_in": int(data.get("expires_in", 7200)),
+            "access_token": body["access_token"],
+            "refresh_token": body.get("refresh_token", ""),
+            "expires_in": int(body.get("expires_in", 7200)),
         }
 
     def get_user_info(self, access_token: str) -> dict:
@@ -44,7 +46,7 @@ class FeishuClient:
             headers={"Authorization": f"Bearer {access_token}"},
             timeout=10,
         )
-        data = _unwrap(resp, "获取用户信息")
+        data = _unwrap(resp, "获取用户信息")["data"]
         return {
             "open_id": data["open_id"],
             "name": data.get("name", ""),
@@ -59,7 +61,6 @@ def _unwrap(resp: httpx.Response, context: str = "") -> dict:
     except ValueError:
         raise FeishuError(f"飞书接口响应不是 JSON（{context}）：{resp.text[:200]}") from None
     if body.get("code", 0) != 0:
-        raise FeishuError(
-            f"飞书接口错误（{context}）：code={body.get('code')}, msg={body.get('msg')!r}, body={body}"
-        )
-    return body["data"]
+        msg = body.get("msg") or body.get("error_description") or body.get("error") or ""
+        raise FeishuError(f"飞书接口错误（{context}）：code={body.get('code')}, msg={msg!r}, body={body}")
+    return body
