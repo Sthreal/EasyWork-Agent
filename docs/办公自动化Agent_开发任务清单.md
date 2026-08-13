@@ -40,7 +40,7 @@
 
 | # | 任务 | 涉及文件 | 验收标准 |
 |---|------|---------|----------|
-| M2-1 | 工具框架 | `backend/tools/base.py`、`backend/tools/registry.py` | 新工具按统一接口注册即可用 |
+| M2-1 | 工具框架 ✅ | `backend/tools/base.py`、`backend/tools/registry.py` | 新工具按统一接口注册即可用 |
 | M2-2 | 邮件工具 | `backend/tools/email.py` | QQ 邮箱读信/发信成功（真实账号） |
 | M2-3 | 日历工具 | `backend/tools/calendar.py` | 飞书建/改日程成功（员工本人身份） |
 | M2-4 | 表格工具 | `backend/tools/sheets.py` | 本地 Excel 读/写/变更预览成功 |
