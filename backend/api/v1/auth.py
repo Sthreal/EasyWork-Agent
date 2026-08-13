@@ -1,12 +1,13 @@
 ﻿"""登录接口（含飞书OAuth回调）。"""
 from fastapi import APIRouter, Depends, Query
+from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
 from backend.db import get_db
 from backend.feishu.auth import build_authorize_url, exchange_code
 from backend.feishu.token_store import save_token
 from backend.models.user import User
-from backend.schemas.auth import AuthCallbackResponse, AuthStatusResponse, LoginUrlResponse
+from backend.schemas.auth import AuthCallbackResponse, AuthStatusResponse
 from config.settings import settings
 
 router = APIRouter(prefix="/auth")
@@ -21,10 +22,10 @@ def status():
     )
 
 
-@router.get("/login", response_model=LoginUrlResponse)
+@router.get("/login")
 def login():
-    """返回飞书授权页地址，前端跳转。"""
-    return LoginUrlResponse(login_url=build_authorize_url())
+    """浏览器访问直接跳转飞书授权页。"""
+    return RedirectResponse(url=build_authorize_url())
 
 
 @router.get("/callback", response_model=AuthCallbackResponse)
