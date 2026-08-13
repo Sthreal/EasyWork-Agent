@@ -3,7 +3,7 @@ import json
 from urllib.parse import urlencode
 
 from fastapi import APIRouter, Depends, Header, Query
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from sqlalchemy.orm import Session
 
 from backend.db import get_db
@@ -33,11 +33,18 @@ def login():
 
 @router.get("/callback")
 def callback(
-    code: str = Query(...),
     db: Session = Depends(get_db),
     accept: str = Header(""),
+    code: str | None = Query(None),
+    error: str | None = Query(None),
 ):
     """飞书授权回调：换令牌 → 取用户信息 → 落库用户 → 存令牌。"""
+    if not code or error:
+        reason = error or "未收到授权码，请重新登录"
+        if "application/json" in accept:
+            return JSONResponse(status_code=400, content={"detail": f"授权失败：{reason}"})
+        return _render_failure_page(reason)
+
     result = exchange_code(code)
     token, user_info = result["token"], result["user_info"]
 
@@ -65,7 +72,6 @@ def callback(
 
 
 def _render_success_page(user: User) -> HTMLResponse:
-    """浏览器场景：把用户信息通过 URL 带给前端，由前端存入自己的 localStorage。"""
     data = {
         "user_id": user.id,
         "open_id": user.feishu_open_id,
@@ -81,6 +87,19 @@ def _render_success_page(user: User) -> HTMLResponse:
 <script>
   location.replace('{target}');
 </script>
+</body>
+</html>"""
+    return HTMLResponse(content=html)
+
+
+def _render_failure_page(reason: str) -> HTMLResponse:
+    html = f"""<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><title>登录失败</title></head>
+<body>
+  <h2>登录失败</h2>
+  <p>{reason}</p>
+  <p><a href="{settings.frontend_url}">返回重新登录</a></p>
 </body>
 </html>"""
     return HTMLResponse(content=html)

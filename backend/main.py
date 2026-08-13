@@ -1,4 +1,4 @@
-﻿"""应用入口：注册路由、启动服务。"""
+"""应用入口：注册路由、启动服务。"""
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
