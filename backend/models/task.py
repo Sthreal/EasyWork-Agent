@@ -31,5 +31,9 @@ class TaskItem(Base):
     target: Mapped[str] = mapped_column(String(256), default="")
     params: Mapped[str] = mapped_column(Text, default="")
     high_risk: Mapped[bool] = mapped_column(Boolean, default=False)
+    tool: Mapped[str] = mapped_column(String(64), default="")
+    args: Mapped[str] = mapped_column(Text, default="{}")
+    status: Mapped[str] = mapped_column(String(32), default="pending")  # pending_confirm/pending/executed/failed/skipped
+    result: Mapped[str] = mapped_column(Text, default="")
 
     task: Mapped[Task] = relationship(back_populates="items")

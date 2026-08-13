@@ -9,6 +9,7 @@ from backend.db import Base, get_db
 from backend.main import app
 from backend.models import confirmation, feishu_token, task, user  # noqa: F401 注册模型
 from backend.safety import gate
+import backend.api.v1.confirmation as conf_api
 
 
 @pytest.fixture()
@@ -58,3 +59,19 @@ def test_pending_list_and_decide(engine, client):
 def test_decide_not_found(client):
     resp = client.post("/api/v1/confirmations/999/decide", json={"approve": True})
     assert resp.status_code == 404
+
+
+def test_decide_approve_triggers_execution(engine, client, monkeypatch):
+    session = sessionmaker(bind=engine)()
+    row = gate.create_confirmation(session, task_id=1, task_item_id=5, action="发送邮件", target="项目组")
+    session.close()
+    monkeypatch.setattr(
+        conf_api,
+        "execute_item",
+        lambda item_id: {"ok": True, "message": "已执行", "data": {}},
+    )
+    resp = client.post(f"/api/v1/confirmations/{row.id}/decide", json={"approve": True})
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["status"] == "approved"
+    assert body["execution_result"]["ok"] is True

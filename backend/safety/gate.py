@@ -15,11 +15,19 @@ def create_confirmation(
     action: str,
     target: str = "",
     params: str = "",
+    task_item_id: int | None = None,
 ) -> Confirmation | None:
     """高危动作创建确认记录；非高危直接返回 None。"""
     if not is_high_risk(action, target, params):
         return None
-    row = Confirmation(task_id=task_id, action=action, target=target, params=params, status="pending")
+    row = Confirmation(
+        task_id=task_id,
+        task_item_id=task_item_id,
+        action=action,
+        target=target,
+        params=params,
+        status="pending",
+    )
     db.add(row)
     db.commit()
     db.refresh(row)

@@ -1,5 +1,23 @@
 <script setup>
-defineProps({ message: { type: Object, required: true } })
+import { computed } from 'vue'
+
+const props = defineProps({ message: { type: Object, required: true } })
+
+function taskStatusText(t) {
+  if (t.status === 'executed') return '✅ 已完成'
+  if (t.status === 'failed') return '❌ 失败'
+  if (t.status === 'pending_confirm') return '⏳ 待确认'
+  return ''
+}
+
+function taskResult(t) {
+  try {
+    const r = JSON.parse(t.result || '')
+    return r.message || ''
+  } catch {
+    return ''
+  }
+}
 </script>
 
 <template>
@@ -10,7 +28,9 @@ defineProps({ message: { type: Object, required: true } })
     <ul v-else-if="message.tasks && message.tasks.length" class="tasks">
       <li v-for="(t, i) in message.tasks" :key="i">
         {{ i + 1 }}. {{ t.action }}<template v-if="t.target"> {{ t.target }}</template>
-        <span v-if="t.high_risk" class="risk">（高危，需确认）</span>
+        <span v-if="t.high_risk" class="risk">（高危）</span>
+        <span class="task-status">{{ taskStatusText(t) }}</span>
+        <span v-if="taskResult(t)" class="task-result">{{ taskResult(t) }}</span>
       </li>
     </ul>
   </div>
@@ -24,4 +44,6 @@ defineProps({ message: { type: Object, required: true } })
 .tasks { margin: 0; padding-left: 20px; }
 .tasks li { margin-bottom: 4px; }
 .risk { color: #e64340; font-size: 12px; }
+.task-status { margin-left: 6px; font-size: 12px; color: #3370ff; }
+.task-result { margin-left: 6px; font-size: 12px; color: #666; }
 </style>

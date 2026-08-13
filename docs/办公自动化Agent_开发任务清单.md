@@ -47,8 +47,8 @@
 | M2-5 | 高危判定 | `backend/safety/high_risk.py` | 删除/覆盖/发送/外发四类能识别 |
 | M2-6 | 确认闸门 ✅ | `backend/safety/gate.py`、`backend/api/v1/confirmation.py`、`backend/models/confirmation.py`、`backend/schemas/confirmation.py` | 高危拦截→确认→放行；超时挂起 |
 | M2-7 | 确认页/弹窗 | `frontend/src/pages/ConfirmationPage.vue`、`frontend/src/components/ConfirmModal.vue`、`frontend/src/api/confirmation.ts` | 能看到待确认动作并点按钮 |
-| M2-8 | 执行编排 | `backend/agent/executor.py` | 子任务按顺序执行，高危走闸门 |
-| M2-9 | 结果反馈 | `backend/agent/feedback.py`、`config/prompts/feedback.md`、`frontend/src/components/ResultCard.vue` | 汇总成功/失败，失败有原因 |
+| M2-8 | 执行编排 ✅ | `backend/agent/executor.py` | 子任务按顺序执行，高危走闸门 |
+| M2-9 | 结果反馈 ✅ | `backend/agent/feedback.py`、`config/prompts/feedback.md`、`frontend/src/components/ResultCard.vue` | 汇总成功/失败，失败有原因 |
 
 **M2 完成标志**：三个工具真实可用；高危必须确认；执行后有汇总反馈。
 

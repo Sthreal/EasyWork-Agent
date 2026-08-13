@@ -10,6 +10,7 @@ class ConfirmationResponse(BaseModel):
     params: str
     status: str
     created_at: str | None = None
+    execution_result: dict | None = None
 
 
 class ConfirmationListResponse(BaseModel):

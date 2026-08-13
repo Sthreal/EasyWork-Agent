@@ -11,6 +11,11 @@ class TaskItem(BaseModel):
     target: str = ""
     params: str = ""
     high_risk: bool = False
+    tool: str = ""
+    args: dict = {}
+    status: str = "pending"
+    result: str = ""
+    confirmation_id: int | None = None
 
 
 class TaskResponse(BaseModel):
