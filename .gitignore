@@ -6,3 +6,6 @@ dist/
 .vscode/
 .idea/
 .DS_Store
+
+# 数据库文件
+*.db
