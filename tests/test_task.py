@@ -229,7 +229,7 @@ def test_low_risk_task_executes(client, monkeypatch):
     })
     monkeypatch.setattr(
         task_api, "execute_item",
-        lambda item_id: {"ok": True, "message": "已创建", "data": {"event_id": "e1"}},
+        lambda item_id, **kwargs: {"ok": True, "message": "已创建", "data": {"event_id": "e1"}},
     )
     resp = client.post("/api/v1/tasks", json={"text": "创建日程"})
     task_item = resp.json()["tasks"][0]
@@ -246,7 +246,7 @@ def test_duplicate_submission_reuses_result(client, monkeypatch):
                 "question": None}
 
     monkeypatch.setattr(task_api, "plan", fake_plan)
-    monkeypatch.setattr(task_api, "execute_item", lambda item_id: {"ok": True, "message": "done", "data": {}})
+    monkeypatch.setattr(task_api, "execute_item", lambda item_id, **kwargs: {"ok": True, "message": "done", "data": {}})
     r1 = client.post("/api/v1/tasks", json={"text": "创建开会日程"})
     r2 = client.post("/api/v1/tasks", json={"text": "创建开会日程"})
     assert r1.json()["task_id"] == r2.json()["task_id"]

@@ -32,20 +32,29 @@ def save_item(db, task_id: int, item: dict) -> TaskItem:
     return row
 
 
-def execute_item(item_id: int) -> dict:
-    """执行一个子任务（低危直接调 / 高危确认后调）。"""
-    db = SessionLocal()
-    try:
+def execute_item(item_id: int, db=None) -> dict:
+    """执行一个子任务。db 为空时自建会话（确认后执行场景）；传入 db 则复用当前会话（任务创建场景）。"""
+    if db is not None:
         item = db.get(TaskItem, item_id)
         if item is None:
             return {"ok": False, "message": "子任务不存在"}
         result = _run(item)
         item.result = json.dumps(result, ensure_ascii=False)
         item.status = "executed" if result["ok"] else "failed"
-        db.commit()
+        return result
+
+    own = SessionLocal()
+    try:
+        item = own.get(TaskItem, item_id)
+        if item is None:
+            return {"ok": False, "message": "子任务不存在"}
+        result = _run(item)
+        item.result = json.dumps(result, ensure_ascii=False)
+        item.status = "executed" if result["ok"] else "failed"
+        own.commit()
         return result
     finally:
-        db.close()
+        own.close()
 
 
 def _run(item: TaskItem) -> dict:

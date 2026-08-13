@@ -19,7 +19,7 @@ function taskResult(t) {
 <template>
   <div class="card">
     <p class="text">{{ message.text }}</p>
-    <p class="status">任务已提交（ID: {{ message.task_id }}）· 状态：{{ message.status }}</p>
+    <p v-if="message.task_id" class="status">任务已提交（ID: {{ message.task_id }}）· 状态：{{ message.status }}</p>
     <p v-if="message.status === 'need_clarify'" class="question">❓ {{ message.question }}</p>
     <p v-else-if="message.message" class="question">⚠️ {{ message.message }}</p>
     <ul v-else-if="message.tasks && message.tasks.length" class="tasks">

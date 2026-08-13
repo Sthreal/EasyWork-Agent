@@ -9,6 +9,7 @@ const emit = defineEmits(['logout', 'openConfirm'])
 
 const messages = ref([])
 const pendingContext = ref(null) // { text, round }
+const sending = ref(false)
 
 async function handleSubmit(text) {
   let submitText = text
@@ -18,10 +19,22 @@ async function handleSubmit(text) {
     round = pendingContext.value.round + 1
     pendingContext.value = null
   }
-  const result = await createTask(submitText, round)
-  messages.value.push({ text: submitText, ...result })
-  if (result.status === 'need_clarify') {
-    pendingContext.value = { text: submitText, round }
+  sending.value = true
+  try {
+    const result = await createTask(submitText, round)
+    messages.value.push({ text: submitText, ...result })
+    if (result.status === 'need_clarify') {
+      pendingContext.value = { text: submitText, round }
+    }
+  } catch (e) {
+    messages.value.push({
+      text: submitText,
+      task_id: '',
+      status: 'error',
+      message: `提交失败：${e.message || e}`,
+    })
+  } finally {
+    sending.value = false
   }
 }
 </script>
@@ -45,8 +58,9 @@ async function handleSubmit(text) {
         </ul>
       </div>
       <ResultCard v-for="(m, i) in messages" :key="i" :message="m" />
+      <div v-if="sending" class="card sending">⏳ 处理中…</div>
     </section>
-    <TaskInput @submit="handleSubmit" />
+    <TaskInput @submit="handleSubmit" :disabled="sending" />
   </main>
 </template>
 
@@ -61,4 +75,6 @@ async function handleSubmit(text) {
 .welcome p { margin: 0 0 8px; }
 .welcome ul { margin: 0; padding-left: 20px; color: #555; }
 .welcome li { margin-bottom: 4px; }
+.card { background: #f7f8fa; border-radius: 8px; padding: 12px 16px; margin-bottom: 12px; }
+.sending { color: #999; }
 </style>
