@@ -6,6 +6,7 @@ from datetime import datetime
 from backend.db import SessionLocal
 from backend.models.task import TaskItem
 from backend.tools.registry import get_tool
+from backend.tools.validation import validate_args
 
 REQUIRED_ARGS = {
     "email": {"send": ["to", "subject"], "read": []},
@@ -57,6 +58,9 @@ def _run(item: TaskItem) -> dict:
     missing = _missing_args(item.tool, args)
     if missing:
         return {"ok": False, "message": f"参数不足：{'、'.join(missing)}"}
+    ok, error = validate_args(item.tool, args)
+    if not ok:
+        return {"ok": False, "message": f"参数不合法：{error}"}
     _normalize(item.tool, args)
     result = tool.execute(**args)
     return {"ok": result.ok, "message": result.message, "data": result.data}
