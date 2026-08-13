@@ -43,7 +43,7 @@
 | M2-1 | 工具框架 ✅ | `backend/tools/base.py`、`backend/tools/registry.py` | 新工具按统一接口注册即可用 |
 | M2-2 | 邮件工具 | `backend/tools/email.py` | QQ 邮箱读信/发信成功（真实账号） |
 | M2-3 | 日历工具 | `backend/tools/calendar.py` | 飞书建/改日程成功（员工本人身份） |
-| M2-4 | 表格工具 | `backend/tools/sheets.py` | 本地 Excel 读/写/变更预览成功 |
+| M2-4 | 表格工具 ✅ | `backend/tools/sheets.py` | 本地 Excel 读/写/变更预览成功 |
 | M2-5 | 高危判定 | `backend/safety/high_risk.py` | 删除/覆盖/发送/外发四类能识别 |
 | M2-6 | 确认闸门 ✅ | `backend/safety/gate.py`、`backend/api/v1/confirmation.py`、`backend/models/confirmation.py`、`backend/schemas/confirmation.py` | 高危拦截→确认→放行；超时挂起 |
 | M2-7 | 确认页/弹窗 | `frontend/src/pages/ConfirmationPage.vue`、`frontend/src/components/ConfirmModal.vue`、`frontend/src/api/confirmation.ts` | 能看到待确认动作并点按钮 |

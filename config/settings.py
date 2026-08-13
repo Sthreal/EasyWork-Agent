@@ -18,6 +18,9 @@ class Settings(BaseSettings):
     # 前端
     frontend_url: str = "http://localhost:5173"
 
+    # 表格工具允许操作的目录
+    sheets_data_dir: str = "D:/download new/ai_coding/Cool note/Excel数据"
+
     # QQ 邮箱（IMAP/SMTP）
     qq_mail_address: str = ""
     qq_mail_auth_code: str = ""
