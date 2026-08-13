@@ -3,6 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.api.v1 import auth, confirmation, task
+import backend.tools  # noqa: F401 注册工具
 from config.settings import settings
 
 app = FastAPI(title=settings.app_name, debug=settings.debug)
