@@ -5,6 +5,7 @@ from datetime import datetime
 
 from backend.db import SessionLocal
 from backend.models.task import TaskItem
+from backend.safety.whitelist import is_allowed
 from backend.tools.registry import get_tool
 from backend.tools.validation import validate_args
 
@@ -55,6 +56,9 @@ def _run(item: TaskItem) -> dict:
         args = json.loads(item.args or "{}")
     except json.JSONDecodeError:
         return {"ok": False, "message": "工具参数格式错误"}
+    action = args.get("action", "")
+    if not is_allowed(item.tool, action):
+        return {"ok": False, "message": f"操作不在白名单：{item.tool}.{action}"}
     missing = _missing_args(item.tool, args)
     if missing:
         return {"ok": False, "message": f"参数不足：{'、'.join(missing)}"}
