@@ -4,6 +4,7 @@ from pydantic import BaseModel, Field
 
 class TaskCreate(BaseModel):
     text: str = Field(..., min_length=1, max_length=2000, description="任务描述")
+    round: int = Field(1, ge=1, le=99, description="追问轮数")
 
 
 class TaskItem(BaseModel):
@@ -24,6 +25,7 @@ class TaskResponse(BaseModel):
     text: str
     tasks: list[TaskItem] = []
     question: str | None = None
+    message: str | None = None
 
 
 class TaskRecord(BaseModel):

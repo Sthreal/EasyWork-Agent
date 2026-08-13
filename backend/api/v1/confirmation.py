@@ -30,10 +30,14 @@ def list_confirmations(db: Session = Depends(get_db)):
 
 @router.post("/{confirmation_id}/decide", response_model=ConfirmationResponse)
 def decide(confirmation_id: int, payload: ConfirmationDecideRequest, db: Session = Depends(get_db)):
-    """确认执行（触发真实执行）/ 拒绝。"""
-    row = decide_confirmation(db, confirmation_id, payload.approve)
+    """确认执行（触发真实执行）/ 拒绝；已处理重复提交幂等返回，不重复执行。"""
+    row = db.get(Confirmation, confirmation_id)
     if row is None:
-        raise HTTPException(status_code=404, detail="确认记录不存在或已处理")
+        raise HTTPException(status_code=404, detail="确认记录不存在")
+    if row.status != "pending":
+        return _to_response(row)
+
+    row = decide_confirmation(db, confirmation_id, payload.approve)
     execution_result = None
     if payload.approve and row.task_item_id:
         execution_result = execute_item(row.task_item_id)

@@ -1,8 +1,4 @@
 <script setup>
-import { computed } from 'vue'
-
-const props = defineProps({ message: { type: Object, required: true } })
-
 function taskStatusText(t) {
   if (t.status === 'executed') return '✅ 已完成'
   if (t.status === 'failed') return '❌ 失败'
@@ -25,6 +21,7 @@ function taskResult(t) {
     <p class="text">{{ message.text }}</p>
     <p class="status">任务已提交（ID: {{ message.task_id }}）· 状态：{{ message.status }}</p>
     <p v-if="message.status === 'need_clarify'" class="question">❓ {{ message.question }}</p>
+    <p v-else-if="message.message" class="question">⚠️ {{ message.message }}</p>
     <ul v-else-if="message.tasks && message.tasks.length" class="tasks">
       <li v-for="(t, i) in message.tasks" :key="i">
         {{ i + 1 }}. {{ t.action }}<template v-if="t.target"> {{ t.target }}</template>

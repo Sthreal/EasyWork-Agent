@@ -8,18 +8,20 @@ const props = defineProps({ user: { type: Object, required: true } })
 const emit = defineEmits(['logout', 'openConfirm'])
 
 const messages = ref([])
-const pendingContext = ref(null)
+const pendingContext = ref(null) // { text, round }
 
 async function handleSubmit(text) {
   let submitText = text
+  let round = 1
   if (pendingContext.value) {
     submitText = `${pendingContext.value.text}，补充：${text}`
+    round = pendingContext.value.round + 1
     pendingContext.value = null
   }
-  const result = await createTask(submitText)
+  const result = await createTask(submitText, round)
   messages.value.push({ text: submitText, ...result })
   if (result.status === 'need_clarify') {
-    pendingContext.value = { text: submitText }
+    pendingContext.value = { text: submitText, round }
   }
 }
 </script>

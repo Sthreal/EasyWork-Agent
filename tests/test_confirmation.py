@@ -75,3 +75,21 @@ def test_decide_approve_triggers_execution(engine, client, monkeypatch):
     body = resp.json()
     assert body["status"] == "approved"
     assert body["execution_result"]["ok"] is True
+
+def test_decide_idempotent(engine, client, monkeypatch):
+    session = sessionmaker(bind=engine)()
+    row = gate.create_confirmation(session, task_id=1, task_item_id=7, action="发送邮件", target="项目组")
+    session.close()
+    calls = {"n": 0}
+
+    def fake_execute(item_id):
+        calls["n"] += 1
+        return {"ok": True, "message": "已执行", "data": {}}
+
+    monkeypatch.setattr(conf_api, "execute_item", fake_execute)
+    r1 = client.post(f"/api/v1/confirmations/{row.id}/decide", json={"approve": True})
+    assert r1.status_code == 200
+    r2 = client.post(f"/api/v1/confirmations/{row.id}/decide", json={"approve": True})
+    assert r2.status_code == 200
+    assert r2.json()["status"] == "approved"
+    assert calls["n"] == 1
