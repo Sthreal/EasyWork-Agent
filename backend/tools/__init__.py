@@ -1,2 +1,2 @@
 """工具注册：导入即注册。"""
-from backend.tools import email, sheets  # noqa: F401
+from backend.tools import calendar, email, sheets  # noqa: F401
