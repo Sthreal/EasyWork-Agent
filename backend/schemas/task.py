@@ -19,3 +19,16 @@ class TaskResponse(BaseModel):
     text: str
     tasks: list[TaskItem] = []
     question: str | None = None
+
+
+class TaskRecord(BaseModel):
+    task_id: str
+    text: str
+    status: str
+    question: str | None = None
+    created_at: str | None = None
+    tasks: list[TaskItem] = []
+
+
+class TaskHistoryResponse(BaseModel):
+    items: list[TaskRecord] = []
