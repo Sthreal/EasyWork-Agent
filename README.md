@@ -17,7 +17,7 @@ Vue + FastAPI + SQLite（预留 PostgreSQL）+ 飞书日历 API + QQ 邮箱 IMAP
 
 ```bash
 pip install -r requirements.txt
-uvicorn backend.main:app --reload   # 启动后端，访问 http://127.0.0.1:8000/docs
+uvicorn backend.main:app --port 8001 --reload   # 启动后端，访问 http://127.0.0.1:8001/docs
 pytest                              # 跑后端测试
 
 cd frontend
