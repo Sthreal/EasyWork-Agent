@@ -48,7 +48,7 @@ def test_login_redirect(client, monkeypatch):
     assert "redirect_uri=" in url
 
 
-def test_callback_creates_user(client, monkeypatch):
+def test_callback_creates_user_json(client, monkeypatch):
     def fake_exchange(code):
         return {
             "token": {"access_token": "t1", "refresh_token": "r1", "expires_in": 7200},
@@ -57,16 +57,33 @@ def test_callback_creates_user(client, monkeypatch):
 
     monkeypatch.setattr(api_auth, "exchange_code", fake_exchange)
 
-    resp = client.get("/api/v1/auth/callback", params={"code": "code123"})
+    headers = {"accept": "application/json"}
+    resp = client.get("/api/v1/auth/callback", params={"code": "code123"}, headers=headers)
     assert resp.status_code == 200
     body = resp.json()
     assert body["open_id"] == "ou_test"
     assert body["name"] == "测试用户"
     assert body["user_id"] == 1
 
-    resp2 = client.get("/api/v1/auth/callback", params={"code": "code456"})
+    resp2 = client.get("/api/v1/auth/callback", params={"code": "code456"}, headers=headers)
     assert resp2.status_code == 200
     assert resp2.json()["user_id"] == body["user_id"]
+
+
+def test_callback_returns_redirect_html(client, monkeypatch):
+    def fake_exchange(code):
+        return {
+            "token": {"access_token": "t1", "refresh_token": "r1", "expires_in": 7200},
+            "user_info": {"open_id": "ou_html", "name": "网页用户", "avatar_url": ""},
+        }
+
+    monkeypatch.setattr(api_auth, "exchange_code", fake_exchange)
+
+    resp = client.get("/api/v1/auth/callback", params={"code": "code_html"})
+    assert resp.status_code == 200
+    assert "text/html" in resp.headers["content-type"]
+    assert "office_agent_user" in resp.text
+    assert "location.replace" in resp.text
 
 
 def test_status_reflects_env(client, monkeypatch):

@@ -1,4 +1,4 @@
-﻿"""统一配置：读取环境变量（只此一处读配置）。"""
+"""统一配置：读取环境变量（只此一处读配置）。"""
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -14,6 +14,9 @@ class Settings(BaseSettings):
     feishu_app_secret: str = ""
     feishu_redirect_uri: str = ""
     feishu_scopes: str = "calendar:calendar:readonly,calendar:calendar"
+
+    # 前端
+    frontend_url: str = "http://localhost:5173"
 
     # QQ 邮箱（IMAP/SMTP）
     qq_mail_address: str = ""

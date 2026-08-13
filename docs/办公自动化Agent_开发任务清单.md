@@ -26,7 +26,7 @@
 | M1-2 | 用户表 + 建库脚本 ✅ | `backend/models/user.py`、`scripts/init_db.py` | 建表成功，可存用户 |
 | M1-3 | 飞书登录/OAuth ✅ | `backend/feishu/auth.py`、`backend/api/v1/auth.py`、`backend/schemas/auth.py`、`frontend/src/pages/LoginPage.vue` | 飞书授权后能登录，回调正常 |
 | M1-4 | 授权令牌存取与刷新 ✅ | `backend/feishu/token_store.py`、`backend/models/feishu_token.py` | token 落库，过期可刷新 |
-| M1-5 | 对话页基础 | `frontend/src/pages/ChatPage.vue`、`frontend/src/components/TaskInput.vue`、`frontend/src/api/task.ts` | 能输入并提交任务文本 |
+| M1-5 | 对话页基础 ✅ | `frontend/src/pages/ChatPage.vue`、`frontend/src/components/TaskInput.vue`、`frontend/src/api/task.ts` | 能输入并提交任务文本 |
 | M1-6 | 大模型封装 | `backend/llm/client.py`、`backend/llm/messages.py` | 统一调模型，错误可处理 |
 | M1-7 | 意图拆解 | `backend/agent/planner.py`、`config/prompts/planner.md` | 一句话 → 结构化子任务列表 |
 | M1-8 | 反问澄清 | `backend/agent/clarify.py`、`config/prompts/clarify.md` | 信息不足时反问，补齐后再拆解 |

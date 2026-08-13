@@ -1,6 +1,8 @@
-﻿"""登录接口（含飞书OAuth回调）。"""
-from fastapi import APIRouter, Depends, Query
-from fastapi.responses import RedirectResponse
+"""登录接口（含飞书OAuth回调）。"""
+import json
+
+from fastapi import APIRouter, Depends, Header, Query
+from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
 
 from backend.db import get_db
@@ -28,8 +30,12 @@ def login():
     return RedirectResponse(url=build_authorize_url())
 
 
-@router.get("/callback", response_model=AuthCallbackResponse)
-def callback(code: str = Query(...), db: Session = Depends(get_db)):
+@router.get("/callback")
+def callback(
+    code: str = Query(...),
+    db: Session = Depends(get_db),
+    accept: str = Header(""),
+):
     """飞书授权回调：换令牌 → 取用户信息 → 落库用户 → 存令牌。"""
     result = exchange_code(code)
     token, user_info = result["token"], result["user_info"]
@@ -47,9 +53,35 @@ def callback(code: str = Query(...), db: Session = Depends(get_db)):
 
     save_token(db, user.id, token)
 
-    return AuthCallbackResponse(
-        user_id=user.id,
-        open_id=user.feishu_open_id,
-        name=user.name,
-        avatar_url=user.avatar_url,
+    if "application/json" in accept:
+        return AuthCallbackResponse(
+            user_id=user.id,
+            open_id=user.feishu_open_id,
+            name=user.name,
+            avatar_url=user.avatar_url,
+        )
+    return _render_success_page(user)
+
+
+def _render_success_page(user: User) -> HTMLResponse:
+    """浏览器场景：把用户信息写入 localStorage 后自动跳转到前端。"""
+    data = json.dumps(
+        {
+            "user_id": user.id,
+            "open_id": user.feishu_open_id,
+            "name": user.name,
+            "avatar_url": user.avatar_url,
+        },
+        ensure_ascii=False,
     )
+    html = f"""<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><title>登录成功</title></head>
+<body>
+<script>
+  localStorage.setItem('office_agent_user', {data});
+  location.replace('{settings.frontend_url}');
+</script>
+</body>
+</html>"""
+    return HTMLResponse(content=html)
