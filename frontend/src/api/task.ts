@@ -19,14 +19,21 @@ export interface TaskResult {
   message?: string | null
 }
 
+const TIMEOUT_MS = 30000
+
 export async function createTask(text: string, round = 1): Promise<TaskResult> {
-  const resp = await fetch('/api/v1/tasks', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text, round }),
-  })
-  if (!resp.ok) {
-    throw new Error(`任务提交失败：${resp.status}`)
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS)
+  try {
+    const resp = await fetch('/api/v1/tasks', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, round }),
+      signal: controller.signal,
+    })
+    if (!resp.ok) throw new Error(`任务提交失败：${resp.status}`)
+    return resp.json()
+  } finally {
+    clearTimeout(timer)
   }
-  return resp.json()
 }
