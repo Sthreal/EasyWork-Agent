@@ -1,7 +1,15 @@
+export interface TaskItem {
+  action: string
+  target: string
+  params: string
+  high_risk: boolean
+}
+
 export interface TaskResult {
   task_id: string
   status: string
   text: string
+  tasks: TaskItem[]
 }
 
 export async function createTask(text: string): Promise<TaskResult> {

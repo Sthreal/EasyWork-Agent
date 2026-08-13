@@ -22,9 +22,10 @@ class Settings(BaseSettings):
     qq_mail_address: str = ""
     qq_mail_auth_code: str = ""
 
-    # 大模型（境内）
+    # 大模型（境内，OpenAI 兼容格式）
     llm_api_key: str = ""
     llm_base_url: str = ""
+    llm_model: str = ""
 
 
 settings = Settings()

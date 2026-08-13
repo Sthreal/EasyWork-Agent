@@ -3,6 +3,7 @@ import uuid
 
 from fastapi import APIRouter
 
+from backend.agent.planner import plan
 from backend.schemas.task import TaskCreate, TaskResponse
 
 router = APIRouter(prefix="/tasks")
@@ -16,5 +17,6 @@ def list_tasks():
 
 @router.post("", response_model=TaskResponse)
 def create_task(payload: TaskCreate):
-    """接收任务，返回占位结果（意图拆解 M1-6 接入）。"""
-    return TaskResponse(task_id=str(uuid.uuid4()), status="pending", text=payload.text)
+    """接收任务 → 意图拆解 → 返回子任务列表（执行 M2 接入）。"""
+    tasks = plan(payload.text)
+    return TaskResponse(task_id=str(uuid.uuid4()), status="planned", text=payload.text, tasks=tasks)
