@@ -13,7 +13,7 @@ class FeishuError(RuntimeError):
 
 
 class FeishuClient:
-    """飞书接口客户端：换取令牌、获取用户信息。"""
+    """飞书接口客户端：换取令牌、刷新令牌、获取用户信息。"""
 
     def __init__(self, app_id: str = "", app_secret: str = ""):
         self.app_id = app_id or settings.feishu_app_id
@@ -33,6 +33,25 @@ class FeishuClient:
             timeout=10,
         )
         body = _unwrap(resp, "换取 user_access_token")
+        return {
+            "access_token": body["access_token"],
+            "refresh_token": body.get("refresh_token", ""),
+            "expires_in": int(body.get("expires_in", 7200)),
+        }
+
+    def refresh_user_access_token(self, refresh_token: str) -> dict:
+        """用 refresh_token 换新令牌（refresh_token 只能用一次，响应会返回新的）。"""
+        resp = httpx.post(
+            FEISHU_OAUTH_TOKEN_URL,
+            json={
+                "grant_type": "refresh_token",
+                "client_id": self.app_id,
+                "client_secret": self.app_secret,
+                "refresh_token": refresh_token,
+            },
+            timeout=10,
+        )
+        body = _unwrap(resp, "刷新 user_access_token")
         return {
             "access_token": body["access_token"],
             "refresh_token": body.get("refresh_token", ""),

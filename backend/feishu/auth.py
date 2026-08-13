@@ -1,8 +1,11 @@
-﻿"""飞书登录/授权（OAuth 流程）。"""
+"""飞书登录/授权（OAuth 流程）。"""
 from urllib.parse import urlencode
 
 from config.settings import settings
 from backend.feishu.client import FEISHU_ACCOUNTS_BASE, FeishuClient
+
+# offline_access：授权时声明，换取 refresh_token（用于 M1-4 令牌刷新）
+OAUTH_SCOPE = "offline_access"
 
 
 def build_authorize_url(state: str = "") -> str:
@@ -12,6 +15,7 @@ def build_authorize_url(state: str = "") -> str:
         "response_type": "code",
         "redirect_uri": settings.feishu_redirect_uri,
         "state": state,
+        "scope": OAUTH_SCOPE,
     }
     return f"{FEISHU_ACCOUNTS_BASE}/authen/v1/authorize?{urlencode(params)}"
 
