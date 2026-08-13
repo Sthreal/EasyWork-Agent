@@ -23,6 +23,15 @@ async function handleSubmit(text) {
       <button class="logout" @click="emit('logout')">退出</button>
     </header>
     <section class="messages">
+      <div class="welcome">
+        <p>👋 你好，{{ user.name }}</p>
+        <p>输入任务，我来帮你执行。例如：</p>
+        <ul>
+          <li>给项目组发邮件，说明明天会议改到3点</li>
+          <li>帮我约明天下午和HR的会议</li>
+          <li>把报名表里张三的电话更新为138xxxx</li>
+        </ul>
+      </div>
       <ResultCard v-for="(m, i) in messages" :key="i" :message="m" />
     </section>
     <TaskInput @submit="handleSubmit" />
@@ -36,4 +45,8 @@ async function handleSubmit(text) {
 .name { flex: 1; }
 .logout { border: none; background: none; color: #999; cursor: pointer; }
 .messages { flex: 1; overflow-y: auto; padding: 16px; }
+.welcome { background: #f7f8fa; border-radius: 8px; padding: 16px; margin-bottom: 12px; }
+.welcome p { margin: 0 0 8px; }
+.welcome ul { margin: 0; padding-left: 20px; color: #555; }
+.welcome li { margin-bottom: 4px; }
 </style>

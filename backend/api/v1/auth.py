@@ -1,5 +1,6 @@
 """登录接口（含飞书OAuth回调）。"""
 import json
+from urllib.parse import urlencode
 
 from fastapi import APIRouter, Depends, Header, Query
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -64,23 +65,21 @@ def callback(
 
 
 def _render_success_page(user: User) -> HTMLResponse:
-    """浏览器场景：把用户信息写入 localStorage 后自动跳转到前端。"""
-    data = json.dumps(
-        {
-            "user_id": user.id,
-            "open_id": user.feishu_open_id,
-            "name": user.name,
-            "avatar_url": user.avatar_url,
-        },
-        ensure_ascii=False,
-    )
+    """浏览器场景：把用户信息通过 URL 带给前端，由前端存入自己的 localStorage。"""
+    data = {
+        "user_id": user.id,
+        "open_id": user.feishu_open_id,
+        "name": user.name,
+        "avatar_url": user.avatar_url,
+    }
+    query = urlencode({"user": json.dumps(data, ensure_ascii=False)})
+    target = f"{settings.frontend_url}/?{query}"
     html = f"""<!doctype html>
 <html lang="zh-CN">
 <head><meta charset="utf-8"><title>登录成功</title></head>
 <body>
 <script>
-  localStorage.setItem('office_agent_user', {data});
-  location.replace('{settings.frontend_url}');
+  location.replace('{target}');
 </script>
 </body>
 </html>"""

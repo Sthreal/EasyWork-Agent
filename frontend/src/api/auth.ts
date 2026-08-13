@@ -17,6 +17,10 @@ export function getStoredUser(): User | null {
   }
 }
 
+export function saveStoredUser(user: User): void {
+  localStorage.setItem(KEY, JSON.stringify(user))
+}
+
 export function clearStoredUser(): void {
   localStorage.removeItem(KEY)
 }
