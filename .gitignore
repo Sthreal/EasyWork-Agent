@@ -1,11 +1,14 @@
-﻿.env
+.env
 __pycache__/
 *.pyc
 node_modules/
 dist/
 .vscode/
 .idea/
-.DS_Store
+.DS_Store
 
 # 数据库文件
 *.db
+
+# 日志
+logs/
