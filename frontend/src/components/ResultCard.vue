@@ -1,5 +1,6 @@
 <script setup>
 function taskStatusText(t) {
+  if (!t) return ''
   if (t.status === 'executed') return '✅ 已完成'
   if (t.status === 'failed') return '❌ 失败'
   if (t.status === 'pending_confirm') return '⏳ 待确认'
@@ -7,6 +8,7 @@ function taskStatusText(t) {
 }
 
 function taskResult(t) {
+  if (!t) return ''
   try {
     const r = JSON.parse(t.result || '')
     return r.message || ''
@@ -17,7 +19,7 @@ function taskResult(t) {
 </script>
 
 <template>
-  <div class="card">
+  <div v-if="message" class="card">
     <p class="text">{{ message.text }}</p>
     <p v-if="message.task_id" class="status">任务已提交（ID: {{ message.task_id }}）· 状态：{{ message.status }}</p>
     <p v-if="message.status === 'need_clarify'" class="question">❓ {{ message.question }}</p>

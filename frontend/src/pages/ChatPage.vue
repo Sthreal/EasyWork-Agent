@@ -22,8 +22,8 @@ async function handleSubmit(text) {
   sending.value = true
   try {
     const result = await createTask(submitText, round)
-    messages.value.push({ text: submitText, ...result })
-    if (result.status === 'need_clarify') {
+    messages.value.push({ text: submitText, ...(result || {}) })
+    if (result && result.status === 'need_clarify') {
       pendingContext.value = { text: submitText, round }
     }
   } catch (e) {
@@ -57,7 +57,7 @@ async function handleSubmit(text) {
           <li>把报名表里张三的电话更新为138xxxx</li>
         </ul>
       </div>
-      <ResultCard v-for="(m, i) in messages" :key="i" :message="m" />
+      <ResultCard v-for="(m, i) in messages.filter(Boolean)" :key="i" :message="m" />
       <div v-if="sending" class="card sending">⏳ 处理中…</div>
     </section>
     <TaskInput @submit="handleSubmit" :disabled="sending" />
