@@ -1,4 +1,6 @@
 <script setup>
+defineProps({ message: { type: Object, default: null } })
+
 function taskStatusText(t) {
   if (!t) return ''
   if (t.status === 'executed') return '✅ 已完成'
