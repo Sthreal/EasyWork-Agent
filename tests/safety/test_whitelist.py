@@ -24,3 +24,6 @@ def test_executor_rejects_not_in_whitelist(monkeypatch):
     result = executor._run(item)
     assert result["ok"] is False
     assert "白名单" in result["message"]
+
+def test_sheets_write_by_key_allowed():
+    assert is_allowed("sheets", "write_by_key") is True

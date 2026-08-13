@@ -62,3 +62,19 @@ def test_calendar_good():
         {"action": "create", "summary": "开会", "start_ts": "2026-08-14T15:00", "end_ts": "2026-08-14T16:00"},
     )
     assert ok is True
+
+def test_sheets_write_by_key_good():
+    ok, msg = validate_args(
+        "sheets",
+        {"action": "write_by_key", "filename": "a.xlsx", "key_column": "姓名", "key_value": "张三", "field": "电话", "value": "138"},
+    )
+    assert ok is True
+
+
+def test_sheets_write_by_key_missing_field():
+    ok, msg = validate_args(
+        "sheets",
+        {"action": "write_by_key", "filename": "a.xlsx", "key_column": "姓名", "key_value": "张三", "field": "", "value": "138"},
+    )
+    assert ok is False
+    assert "field" in msg

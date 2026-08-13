@@ -1,7 +1,7 @@
 """敏感操作白名单：只允许明确授权的工具动作。"""
 ALLOWED_OPERATIONS = {
     "email": {"send", "read"},
-    "sheets": {"read", "write"},
+    "sheets": {"read", "write", "write_by_key"},
     "calendar": {"create", "update"},
 }
 

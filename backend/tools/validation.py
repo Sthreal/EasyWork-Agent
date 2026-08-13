@@ -25,10 +25,15 @@ def _validate_email(args: dict) -> tuple[bool, str]:
 
 def _validate_sheets(args: dict) -> tuple[bool, str]:
     action = args.get("action", "")
-    if action in ("read", "write"):
+    if action in ("read", "write", "write_by_key"):
         filename = args.get("filename")
         if not isinstance(filename, str) or not filename.strip():
             return False, "文件名不能为空"
+    if action == "write_by_key":
+        for k in ("key_column", "key_value", "field", "value"):
+            if not isinstance(args.get(k), str) or not args[k].strip():
+                return False, f"{k} 不能为空"
+        return True, ""
     if action == "write":
         changes = args.get("changes")
         if not isinstance(changes, list) or not changes:

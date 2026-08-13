@@ -85,3 +85,32 @@ def test_unsupported_action():
     tool = sheets_tool.SheetTool()
     result = tool.execute(action="fly")
     assert result.ok is False
+
+def test_find_cell_by_header(tmp_sheets):
+    tool = sheets_tool.SheetTool()
+    target = tool.find_cell("报名表.xlsx", "姓名", "张三", "电话")
+    assert target["row"] == 2
+    assert target["column"] == "B"
+    assert target["old"] == "13800000000"
+
+
+def test_write_by_key(tmp_sheets):
+    tool = sheets_tool.SheetTool()
+    result = tool.execute(
+        action="write_by_key",
+        filename="报名表.xlsx",
+        key_column="姓名",
+        key_value="张三",
+        field="电话",
+        value="13899999999",
+    )
+    assert result.ok is True
+    check = tool.execute(action="read", filename="报名表.xlsx")
+    assert check.data["rows"][1][1] == "13899999999"
+
+
+def test_find_cell_missing_header(tmp_sheets):
+    tool = sheets_tool.SheetTool()
+    result = tool.execute(action="write_by_key", filename="报名表.xlsx", key_column="姓名", key_value="张三", field="邮箱", value="x@y.com")
+    assert result.ok is False
+    assert "找不到表头" in result.message

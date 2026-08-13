@@ -260,3 +260,57 @@ def test_max_rounds(client, monkeypatch):
     body = resp.json()
     assert body["status"] == "too_many_rounds"
     assert "上限" in body["message"]
+
+
+def test_sheets_write_preview_in_confirmation(client, monkeypatch):
+    import backend.tools.sheets as sheets_mod
+
+    monkeypatch.setattr(
+        sheets_mod.SheetTool,
+        "find_cell",
+        lambda self, filename, key_column, key_value, field, header_row=1: {"row": 2, "column": "B", "old": "13800000000"},
+    )
+    monkeypatch.setattr(
+        task_api,
+        "plan",
+        lambda text: {
+            "tasks": [
+                {"action": "更新电话", "target": "报名表", "params": "", "high_risk": True, "tool": "sheets",
+                 "args": {"action": "write_by_key", "filename": "报名表.xlsx", "key_column": "姓名", "key_value": "张三", "field": "电话", "value": "13866667777"}}
+            ],
+            "question": None,
+        },
+    )
+    resp = client.post("/api/v1/tasks", json={"text": "把张三电话改为13866667777"})
+    assert resp.status_code == 200
+    item = resp.json()["tasks"][0]
+    assert item["status"] == "pending_confirm"
+    assert item["confirmation_id"] is not None
+    # 确认记录 params 应包含预览（通过待确认列表接口验证）
+    pending = client.get("/api/v1/confirmations").json()["items"]
+    assert any("将修改" in p["params"] and "第2行B列" in p["params"] for p in pending)
+
+
+def test_sheets_write_locate_failure_marks_failed(client, monkeypatch):
+    import backend.tools.sheets as sheets_mod
+
+    def boom(self, filename, key_column, key_value, field, header_row=1):
+        raise ValueError("找不到表头：电话")
+
+    monkeypatch.setattr(sheets_mod.SheetTool, "find_cell", boom)
+    monkeypatch.setattr(
+        task_api,
+        "plan",
+        lambda text: {
+            "tasks": [
+                {"action": "更新电话", "target": "报名表", "params": "", "high_risk": True, "tool": "sheets",
+                 "args": {"action": "write_by_key", "filename": "报名表.xlsx", "key_column": "姓名", "key_value": "张三", "field": "电话", "value": "138"}}
+            ],
+            "question": None,
+        },
+    )
+    resp = client.post("/api/v1/tasks", json={"text": "把张三电话改了"})
+    assert resp.status_code == 200
+    item = resp.json()["tasks"][0]
+    assert item["status"] == "failed"
+    assert "找不到表头" in item["result"]

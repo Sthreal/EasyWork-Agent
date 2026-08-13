@@ -1,4 +1,4 @@
-"""表格工具（本地 Excel/CSV：读/写/预览）。"""
+"""表格工具（本地 Excel/CSV：读/写/预览，支持按表头定位）。"""
 import csv
 from pathlib import Path
 
@@ -24,6 +24,14 @@ class SheetTool(BaseTool):
                 return self.preview(filename=kwargs.get("filename", ""), changes=kwargs.get("changes", []))
             if action == "write":
                 return self.write(filename=kwargs.get("filename", ""), changes=kwargs.get("changes", []))
+            if action == "write_by_key":
+                return self.write_by_key(
+                    filename=kwargs.get("filename", ""),
+                    key_column=kwargs.get("key_column", "姓名"),
+                    key_value=kwargs.get("key_value", ""),
+                    field=kwargs.get("field", ""),
+                    value=kwargs.get("value", ""),
+                )
             return ToolResult(ok=False, message=f"不支持的表格动作：{action}")
         except ValueError as exc:
             return ToolResult(ok=False, message=str(exc))
@@ -44,6 +52,28 @@ class SheetTool(BaseTool):
         rows = _read_rows(path, limit)
         return ToolResult(ok=True, message=f"读取 {len(rows)} 行", data={"file": filename, "rows": rows})
 
+    def find_cell(self, filename: str, key_column: str, key_value: str, field: str, header_row: int = 1) -> dict:
+        """按表头定位单元格：在 key_column 列找到 key_value 的行，取 field 列。返回 {row, column, old}。"""
+        path = self._resolve(filename)
+        if not path.exists():
+            raise ValueError(f"文件不存在：{filename}")
+        rows = _read_rows(path, 500)
+        if not rows:
+            raise ValueError("表格为空")
+        header = [str(h) if h is not None else "" for h in rows[header_row - 1]]
+        key_col = _header_index(header, key_column)
+        field_col = _header_index(header, field)
+        if key_col is None:
+            raise ValueError(f"找不到表头：{key_column}")
+        if field_col is None:
+            raise ValueError(f"找不到表头：{field}")
+        for i, row in enumerate(rows[header_row:], start=header_row + 1):
+            cell = row[key_col - 1] if len(row) >= key_col else None
+            if cell is not None and str(cell).strip() == str(key_value).strip():
+                old = row[field_col - 1] if len(row) >= field_col else ""
+                return {"row": i, "column": _col_letter(field_col), "old": "" if old is None else str(old)}
+        raise ValueError(f"找不到 {key_column}={key_value}")
+
     def preview(self, filename: str, changes: list) -> ToolResult:
         path = self._resolve(filename)
         if not path.exists():
@@ -52,14 +82,7 @@ class SheetTool(BaseTool):
         preview = []
         for c in changes:
             old = _cell_value(rows, c.get("row"), c.get("column"))
-            preview.append(
-                {
-                    "row": c.get("row"),
-                    "column": c.get("column"),
-                    "old": old,
-                    "new": c.get("value", ""),
-                }
-            )
+            preview.append({"row": c.get("row"), "column": c.get("column"), "old": old, "new": c.get("value", "")})
         return ToolResult(ok=True, message=f"生成 {len(preview)} 处变更预览", data={"preview": preview})
 
     def write(self, filename: str, changes: list) -> ToolResult:
@@ -68,6 +91,11 @@ class SheetTool(BaseTool):
             return ToolResult(ok=False, message=f"文件不存在：{filename}")
         count = _apply_changes(path, changes)
         return ToolResult(ok=True, message=f"已更新 {count} 个单元格", data={"file": filename})
+
+    def write_by_key(self, filename: str, key_column: str, key_value: str, field: str, value: str) -> ToolResult:
+        """按表头+关键值定位后写入（先定位，找不到就报错，不瞎改）。"""
+        target = self.find_cell(filename, key_column, key_value, field)
+        return self.write(filename, [{"row": target["row"], "column": target["column"], "value": value}])
 
 
 def _read_rows(path: Path, limit: int) -> list:
@@ -79,6 +107,21 @@ def _read_rows(path: Path, limit: int) -> list:
     wb = openpyxl.load_workbook(path, data_only=True)
     ws = wb.active
     return [[ws.cell(row=r, column=c).value for c in range(1, ws.max_column + 1)] for r in range(1, ws.max_row + 1)][:limit]
+
+
+def _header_index(header: list[str], name: str) -> int | None:
+    for idx, h in enumerate(header, start=1):
+        if h.strip() == name.strip():
+            return idx
+    return None
+
+
+def _col_letter(idx: int) -> str:
+    result = ""
+    while idx > 0:
+        idx, rem = divmod(idx - 1, 26)
+        result = chr(ord("A") + rem) + result
+    return result
 
 
 def _cell_value(rows: list, row, column) -> str:
