@@ -42,6 +42,7 @@ onMounted(load)
     <p v-if="!loading && items.length === 0" class="empty">暂无待确认动作</p>
     <div v-for="item in items" :key="item.id" class="item">
       <p class="line"><b>{{ item.action }}</b> {{ item.target }}（高危，需确认）</p>
+      <p v-if="item.params" class="preview">📋 {{ item.params }}</p>
       <p class="meta">任务 #{{ item.task_id }} · {{ item.created_at }}</p>
       <div class="btns">
         <button class="ok" @click="target = item">确认执行</button>
@@ -60,6 +61,7 @@ onMounted(load)
 .empty { color: #999; }
 .item { border: 1px solid #eee; border-radius: 8px; padding: 12px 16px; margin-bottom: 12px; }
 .line { margin: 0 0 6px; }
+.preview { margin: 0 0 6px; color: #b25000; font-size: 13px; }
 .meta { margin: 0 0 10px; font-size: 12px; color: #999; }
 .btns { display: flex; gap: 8px; }
 .ok { padding: 6px 16px; border: none; border-radius: 6px; background: #e64340; color: #fff; cursor: pointer; }
