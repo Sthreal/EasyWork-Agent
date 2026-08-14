@@ -6,6 +6,7 @@ export interface ConfirmationItem {
   params: string
   status: string
   created_at: string | null
+  is_expired: boolean
 }
 
 export async function listPending(): Promise<ConfirmationItem[]> {

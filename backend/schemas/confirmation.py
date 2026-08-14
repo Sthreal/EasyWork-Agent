@@ -11,6 +11,7 @@ class ConfirmationResponse(BaseModel):
     status: str
     created_at: str | None = None
     execution_result: dict | None = None
+    is_expired: bool = False
 
 
 class ConfirmationListResponse(BaseModel):

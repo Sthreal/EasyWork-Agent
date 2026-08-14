@@ -1,8 +1,9 @@
 <script setup>
-import { ref, nextTick } from 'vue'
+import { ref, nextTick, onMounted } from 'vue'
 import TaskInput from '../components/TaskInput.vue'
 import ResultCard from '../components/ResultCard.vue'
 import { createTask } from '../api/task'
+import { listPending } from '../api/confirmation'
 
 const props = defineProps({ user: { type: Object, required: true } })
 const emit = defineEmits(['logout', 'openConfirm', 'openHistory', 'openSettings'])
@@ -10,6 +11,16 @@ const emit = defineEmits(['logout', 'openConfirm', 'openHistory', 'openSettings'
 const messages = ref([])
 const pendingContext = ref(null)
 const sending = ref(false)
+const pendingCount = ref(0)
+
+onMounted(async () => {
+  try {
+    const items = await listPending()
+    pendingCount.value = items.length
+  } catch {
+    pendingCount.value = 0
+  }
+})
 const listEl = ref(null)
 
 async function scrollToBottom() {

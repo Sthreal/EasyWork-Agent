@@ -1,11 +1,12 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import LoginPage from './pages/LoginPage.vue'
 import ChatPage from './pages/ChatPage.vue'
 import ConfirmationPage from './pages/ConfirmationPage.vue'
 import HistoryPage from './pages/HistoryPage.vue'
 import SettingsPage from './pages/SettingsPage.vue'
 import AppLayout from './components/AppLayout.vue'
+import { listPending } from './api/confirmation'
 import { getStoredUser, clearStoredUser, saveStoredUser } from './api/auth'
 
 const params = new URLSearchParams(window.location.search)
@@ -20,6 +21,19 @@ if (userParam) {
 
 const user = ref(getStoredUser())
 const view = ref('chat')
+const pendingCount = ref(0)
+
+async function refreshPending() {
+  try {
+    const items = await listPending()
+    pendingCount.value = items.length
+  } catch {
+    pendingCount.value = 0
+  }
+}
+
+onMounted(refreshPending)
+watch(view, refreshPending)
 
 function logout() {
   clearStoredUser()
@@ -33,6 +47,7 @@ function logout() {
     v-else
     :view="view"
     :user="user"
+    :pending-count="pendingCount"
     @navigate="view = $event"
     @logout="logout"
   >

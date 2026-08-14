@@ -67,50 +67,29 @@ def client():
 
 
 def test_create_task_returns_planned_tasks(client, monkeypatch):
-
     monkeypatch.setattr(
-
         task_api,
-
         "plan",
-
         lambda text: {
-
             "tasks": [
-
-                {"action": "写邮件", "target": "项目组", "params": "", "high_risk": False},
-
-                {"action": "发送邮件", "target": "项目组", "params": "", "high_risk": True},
-
+                {"action": "写邮件", "target": "项目组", "params": "", "high_risk": False, "tool": "sheets",
+                 "args": {"action": "read", "filename": "报名表.xlsx"}},
+                {"action": "发送邮件", "target": "项目组", "params": "", "high_risk": True, "tool": "email",
+                 "args": {"action": "send", "to": "a@b.com", "subject": "s"}},
             ],
-
             "question": None,
-
         },
-
     )
-
+    monkeypatch.setattr(task_api, "execute_item", lambda item_id, **kwargs: {"ok": True, "message": "done", "data": {}})
     resp = client.post("/api/v1/tasks", json={"text": "给项目组发邮件"})
-
     assert resp.status_code == 200
-
     body = resp.json()
-
-    assert body["status"] == "planned"
-
+    assert body["status"] == "pending_confirm"
     assert body["text"] == "给项目组发邮件"
-
     assert len(body["tasks"]) == 2
-
     assert body["tasks"][1]["high_risk"] is True
-
     assert body["question"] is None
-
     assert body["task_id"]
-
-
-
-
 
 def test_create_task_asks_clarification(client, monkeypatch):
 
@@ -141,52 +120,30 @@ def test_create_task_asks_clarification(client, monkeypatch):
 
 
 def test_task_saved_and_queryable(client, monkeypatch):
-
     monkeypatch.setattr(
-
         task_api,
-
         "plan",
-
         lambda text: {
-
             "tasks": [
-
-                {"action": "写邮件", "target": "项目组", "params": "", "high_risk": False},
-
-                {"action": "发送邮件", "target": "项目组", "params": "", "high_risk": True},
-
+                {"action": "写邮件", "target": "项目组", "params": "", "high_risk": False, "tool": "sheets",
+                 "args": {"action": "read", "filename": "报名表.xlsx"}},
+                {"action": "发送邮件", "target": "项目组", "params": "", "high_risk": True, "tool": "email",
+                 "args": {"action": "send", "to": "a@b.com", "subject": "s"}},
             ],
-
             "question": None,
-
         },
-
     )
-
+    monkeypatch.setattr(task_api, "execute_item", lambda item_id, **kwargs: {"ok": True, "message": "done", "data": {}})
     resp = client.post("/api/v1/tasks", json={"text": "给项目组发邮件"})
-
     task_id = resp.json()["task_id"]
 
-
-
     hist = client.get("/api/v1/tasks")
-
     assert hist.status_code == 200
-
     items = hist.json()["items"]
-
     record = next(item for item in items if item["task_id"] == task_id)
-
-    assert record["status"] == "planned"
-
+    assert record["status"] == "pending_confirm"
     assert len(record["tasks"]) == 2
-
     assert record["tasks"][0]["action"] == "写邮件"
-
-
-
-
 
 def test_create_task_rejects_empty(client):
 

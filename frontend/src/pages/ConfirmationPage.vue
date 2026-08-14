@@ -42,6 +42,7 @@ onMounted(load)
     <div v-for="item in items" :key="item.id" class="item">
       <div class="item-head">
         <span class="badge badge-danger">高危</span>
+        <span v-if="item.is_expired" class="badge badge-muted">超时挂起</span>
         <span class="line"><b>{{ item.action }}</b> {{ item.target }}</span>
       </div>
       <p v-if="item.params" class="preview">📋 {{ item.params }}</p>

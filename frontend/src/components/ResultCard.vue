@@ -11,6 +11,8 @@ function statusBadge(s) {
       return { text: '⏳ 待确认', cls: 'badge-warning' }
     case 'need_clarify':
       return { text: '❓ 待澄清', cls: 'badge-warning' }
+    case 'rejected':
+      return { text: '🚫 已拒绝', cls: 'badge-muted' }
     case 'error':
       return { text: '⚠️ 错误', cls: 'badge-danger' }
     default:
@@ -29,6 +31,8 @@ function stepStatus(t) {
       return { text: '待确认', cls: 'badge-warning' }
     case 'pending':
       return { text: '待执行', cls: 'badge-muted' }
+    case 'rejected':
+      return { text: '已拒绝', cls: 'badge-muted' }
     default:
       return null
   }

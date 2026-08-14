@@ -2,11 +2,12 @@
 import json
 from datetime import datetime, timedelta
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from backend.agent.executor import execute_item, save_item
 from backend.agent.planner import plan
+from backend.agent.task_status import refresh_task_status
 from backend.db import get_db
 from backend.models.confirmation import Confirmation
 from backend.models.task import Task, TaskItem
@@ -27,10 +28,11 @@ DEDUP_WINDOW_SECONDS = 300
 
 @router.post("", response_model=TaskResponse)
 def create_task(payload: TaskCreate, db: Session = Depends(get_db)):
-    """接收任务 → 去重 → 拆解 → 落库 → 低危执行/高危确认。"""
-    cached = _find_recent_duplicate(db, payload.text, payload.user_id)
-    if cached:
-        return _task_response(db, cached)
+    """接收任务 → 去重(可跳过) → 拆解 → 落库 → 低危执行/高危确认 → 聚合任务状态。"""
+    if not payload.force:
+        cached = _find_recent_duplicate(db, payload.text, payload.user_id)
+        if cached:
+            return _task_response(db, cached)
 
     result = plan(payload.text)
 
@@ -88,23 +90,47 @@ def create_task(payload: TaskCreate, db: Session = Depends(get_db)):
                 row.result = json.dumps(exec_result, ensure_ascii=False)
             items_out.append(_item_schema(row, None, exec_result))
 
+    final_status = refresh_task_status(db, task.id)
     db.commit()
     return TaskResponse(
         task_id=str(task.id),
-        status=task.status,
+        status=final_status or task.status,
         text=task.text,
         tasks=items_out,
     )
 
 
 @router.get("", response_model=TaskHistoryResponse)
-def list_tasks(user_id: int | None = None, db: Session = Depends(get_db)):
-    """查询最近 50 条任务历史；传 user_id 则只看该用户。"""
+def list_tasks(
+    user_id: int | None = None,
+    q: str | None = None,
+    status: str | None = None,
+    date_from: str | None = None,
+    date_to: str | None = None,
+    limit: int = Query(50, ge=1, le=500),
+    offset: int = Query(0, ge=0),
+    db: Session = Depends(get_db),
+):
+    """查询任务历史：支持用户/关键词/状态(逗号分隔)/时间范围过滤 + 分页。"""
     query = db.query(Task)
     if user_id is not None:
         query = query.filter(Task.user_id == user_id)
-    tasks = query.order_by(Task.id.desc()).limit(50).all()
+    if q:
+        query = query.filter(Task.text.like(f"%{q}%"))
+    if status:
+        statuses = [s.strip() for s in status.split(",") if s.strip()]
+        if statuses:
+            query = query.filter(Task.status.in_(statuses))
+    if date_from:
+        query = query.filter(Task.created_at >= datetime.strptime(date_from, "%Y-%m-%d"))
+    if date_to:
+        end = datetime.strptime(date_to, "%Y-%m-%d") + timedelta(days=1)
+        query = query.filter(Task.created_at < end)
+
+    total = query.count()
+    tasks = query.order_by(Task.id.desc()).offset(offset).limit(limit).all()
     return TaskHistoryResponse(
+        total=total,
         items=[
             TaskRecord(
                 task_id=str(t.id),
@@ -115,7 +141,7 @@ def list_tasks(user_id: int | None = None, db: Session = Depends(get_db)):
                 tasks=[_item_schema(i, _confirmation_id(db, i.id)) for i in t.items],
             )
             for t in tasks
-        ]
+        ],
     )
 
 
