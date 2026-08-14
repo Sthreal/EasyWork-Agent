@@ -19,3 +19,4 @@ class ConfirmationListResponse(BaseModel):
 
 class ConfirmationDecideRequest(BaseModel):
     approve: bool
+    user_id: int | None = None

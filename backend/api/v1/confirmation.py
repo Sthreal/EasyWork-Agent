@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from backend.agent.executor import execute_item
 from backend.db import get_db
 from backend.models.confirmation import Confirmation
+from backend.models.task import Task
 from backend.safety.gate import decide_confirmation
 from backend.schemas.confirmation import (
     ConfirmationDecideRequest,
@@ -30,10 +31,14 @@ def list_confirmations(db: Session = Depends(get_db)):
 
 @router.post("/{confirmation_id}/decide", response_model=ConfirmationResponse)
 def decide(confirmation_id: int, payload: ConfirmationDecideRequest, db: Session = Depends(get_db)):
-    """确认执行（触发真实执行）/ 拒绝；已处理重复提交幂等返回，不重复执行。"""
+    """确认执行（触发真实执行）/ 拒绝；已处理重复提交幂等返回；跨用户拦截。"""
     row = db.get(Confirmation, confirmation_id)
     if row is None:
         raise HTTPException(status_code=404, detail="确认记录不存在")
+    if payload.user_id is not None and row.task_id:
+        owner = db.get(Task, row.task_id)
+        if owner and owner.user_id is not None and owner.user_id != payload.user_id:
+            raise HTTPException(status_code=403, detail="无权处理该确认（任务属于其他用户）")
     if row.status != "pending":
         return _to_response(row)
 

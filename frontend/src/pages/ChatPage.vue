@@ -5,10 +5,10 @@ import ResultCard from '../components/ResultCard.vue'
 import { createTask } from '../api/task'
 
 const props = defineProps({ user: { type: Object, required: true } })
-const emit = defineEmits(['logout', 'openConfirm'])
+const emit = defineEmits(['logout', 'openConfirm', 'openHistory'])
 
 const messages = ref([])
-const pendingContext = ref(null) // { text, round }
+const pendingContext = ref(null)
 const sending = ref(false)
 
 async function handleSubmit(text) {
@@ -21,18 +21,13 @@ async function handleSubmit(text) {
   }
   sending.value = true
   try {
-    const result = await createTask(submitText, round)
+    const result = await createTask(submitText, round, props.user.user_id)
     messages.value.push({ text: submitText, ...(result || {}) })
     if (result && result.status === 'need_clarify') {
       pendingContext.value = { text: submitText, round }
     }
   } catch (e) {
-    messages.value.push({
-      text: submitText,
-      task_id: '',
-      status: 'error',
-      message: `提交失败：${e.message || e}`,
-    })
+    messages.value.push({ text: submitText, task_id: '', status: 'error', message: `提交失败：${e.message || e}` })
   } finally {
     sending.value = false
   }
@@ -44,6 +39,7 @@ async function handleSubmit(text) {
     <header class="top">
       <img v-if="user.avatar_url" :src="user.avatar_url" class="avatar" alt="" />
       <span class="name">{{ user.name }}</span>
+      <button class="logout" @click="emit('openHistory')">历史</button>
       <button class="logout" @click="emit('openConfirm')">待确认</button>
       <button class="logout" @click="emit('logout')">退出</button>
     </header>

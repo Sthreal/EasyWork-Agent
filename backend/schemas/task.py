@@ -5,6 +5,8 @@ from pydantic import BaseModel, Field
 class TaskCreate(BaseModel):
     text: str = Field(..., min_length=1, max_length=2000, description="任务描述")
     round: int = Field(1, ge=1, le=99, description="追问轮数")
+    user_id: int | None = Field(None, description="用户ID")
+    user_id: int | None = Field(None, description="用户ID")
 
 
 class TaskItem(BaseModel):

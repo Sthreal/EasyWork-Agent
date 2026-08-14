@@ -314,3 +314,37 @@ def test_sheets_write_locate_failure_marks_failed(client, monkeypatch):
     item = resp.json()["tasks"][0]
     assert item["status"] == "failed"
     assert "找不到表头" in item["result"]
+
+
+def test_create_task_with_user_and_filter(client, monkeypatch):
+    monkeypatch.setattr(task_api, "plan", lambda text: {
+        "tasks": [{"action": "读取", "target": "报名表", "params": "", "high_risk": False, "tool": "sheets",
+                   "args": {"action": "read", "filename": "报名表.xlsx"}}],
+        "question": None,
+    })
+    monkeypatch.setattr(task_api, "execute_item", lambda item_id, **kwargs: {"ok": True, "message": "done", "data": {}})
+    resp = client.post("/api/v1/tasks", json={"text": "读取报名表内容", "user_id": 7})
+    assert resp.status_code == 200
+    hist7 = client.get("/api/v1/tasks", params={"user_id": 7}).json()["items"]
+    assert any(i["task_id"] == resp.json()["task_id"] for i in hist7)
+    hist8 = client.get("/api/v1/tasks", params={"user_id": 8}).json()["items"]
+    assert not any(i["task_id"] == resp.json()["task_id"] for i in hist8)
+
+
+def test_dedup_scoped_by_user(client, monkeypatch):
+    calls = {"n": 0}
+
+    def fake_plan(text):
+        calls["n"] += 1
+        return {"tasks": [{"action": "读取", "target": "报名表", "params": "", "high_risk": False, "tool": "sheets",
+                           "args": {"action": "read", "filename": "报名表.xlsx"}}], "question": None}
+
+    monkeypatch.setattr(task_api, "plan", fake_plan)
+    monkeypatch.setattr(task_api, "execute_item", lambda item_id, **kwargs: {"ok": True, "message": "done", "data": {}})
+    r1 = client.post("/api/v1/tasks", json={"text": "读取报名表内容", "user_id": 7})
+    r2 = client.post("/api/v1/tasks", json={"text": "读取报名表内容", "user_id": 7})
+    assert r1.json()["task_id"] == r2.json()["task_id"]
+    assert calls["n"] == 1
+    r3 = client.post("/api/v1/tasks", json={"text": "读取报名表内容", "user_id": 8})
+    assert r3.json()["task_id"] != r1.json()["task_id"]
+    assert calls["n"] == 2

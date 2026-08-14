@@ -93,3 +93,21 @@ def test_decide_idempotent(engine, client, monkeypatch):
     assert r2.status_code == 200
     assert r2.json()["status"] == "approved"
     assert calls["n"] == 1
+
+
+def test_decide_cross_user_forbidden(engine, client):
+    from backend.models.task import Task
+
+    session = sessionmaker(bind=engine)()
+    task = Task(user_id=7, text="改表格", status="planned")
+    session.add(task)
+    session.flush()
+    conf = gate.create_confirmation(session, task_id=task.id, action="发送邮件", target="项目组", task_item_id=None)
+    session.close()
+
+    r_other = client.post(f"/api/v1/confirmations/{conf.id}/decide", json={"approve": True, "user_id": 8})
+    assert r_other.status_code == 403
+
+    r_owner = client.post(f"/api/v1/confirmations/{conf.id}/decide", json={"approve": True, "user_id": 7})
+    assert r_owner.status_code == 200
+    assert r_owner.json()["status"] == "approved"
