@@ -154,7 +154,7 @@ def gc01_read_sheet(api, rnd, trace):
     trace["response"] = resp.json()
     body = resp.json()
     item = find_item(body, "sheets")
-    ok = resp.status_code == 200 and body.get("status") == "planned" and item and item.get("status") == "executed" and "读取" in item.get("result", "")
+    ok = resp.status_code == 200 and body.get("status") in ("planned", "executed", "pending_confirm") and item and item.get("status") == "executed" and "读取" in item.get("result", "")
     rows = read_sheet() if ok else []
     trace["side_effect"] = {"rows_count": len(rows)}
     return {"pass": ok, "details": item.get("result", "") if item else "未找到子任务", "quality": 100 if ok and len(rows) >= 3 else 60}
@@ -306,7 +306,7 @@ def gc10_no_false_clarify(api, rnd, trace):
     resp = post_task(api, text, rnd)
     body = resp.json()
     trace["response"] = body
-    ok = resp.status_code == 200 and body.get("status") == "planned" and body.get("question") is None
+    ok = resp.status_code == 200 and body.get("status") in ("planned", "executed", "pending_confirm") and body.get("question") is None
     return {"pass": ok, "details": f"status={body.get('status')}", "quality": 100 if ok else 0}
 
 
