@@ -9,6 +9,7 @@ const address = ref('')
 const code = ref('')
 const masked = ref('')
 const msg = ref('')
+const msgOk = ref(false)
 const busy = ref(false)
 
 async function load() {
@@ -27,9 +28,11 @@ async function onSave() {
   try {
     const cfg = await saveMail(props.user.user_id, address.value.trim(), code.value.trim())
     masked.value = cfg.qq_mail_auth_code_masked
-    msg.value = '✅ 已保存（授权码已加密显示）'
+    msg.value = '已保存（授权码已加密显示）'
+    msgOk.value = true
   } catch (e) {
     msg.value = `保存失败：${e.message || e}`
+    msgOk.value = false
   } finally {
     busy.value = false
   }
@@ -40,9 +43,11 @@ async function onTest() {
   msg.value = ''
   try {
     const r = await testMail(props.user.user_id, address.value.trim(), code.value.trim())
-    msg.value = r.ok ? `✅ ${r.message}` : `❌ ${r.message}`
+    msg.value = r.message
+    msgOk.value = !!r.ok
   } catch (e) {
     msg.value = `测试失败：${e.message || e}`
+    msgOk.value = false
   } finally {
     busy.value = false
   }
@@ -53,37 +58,66 @@ onMounted(load)
 
 <template>
   <main class="settings">
-    <header class="top">
-      <button class="link" @click="emit('back')">← 返回</button>
+    <header class="page-header">
       <h2>我的邮箱</h2>
     </header>
-    <p class="tip">绑定后，发邮件会使用你自己的邮箱；不绑定则使用系统默认邮箱。</p>
-    <label>
-      QQ 邮箱
-      <input v-model="address" placeholder="yourname@qq.com" />
-    </label>
-    <label>
-      授权码（IMAP/SMTP，16 位）
-      <input v-model="code" type="password" :placeholder="masked || '填新的授权码'" />
-    </label>
-    <p v-if="msg" class="msg">{{ msg }}</p>
-    <div class="btns">
-      <button :disabled="busy" @click="onSave">保存</button>
-      <button :disabled="busy" @click="onTest">发送测试邮件</button>
+    <div class="card">
+      <p class="tip">绑定后，发邮件会使用你自己的邮箱；不绑定则使用系统默认邮箱。</p>
+      <label class="field">
+        <span class="label">QQ 邮箱</span>
+        <input v-model="address" class="input" placeholder="yourname@qq.com" />
+      </label>
+      <label class="field">
+        <span class="label">授权码（IMAP/SMTP，16 位）</span>
+        <input v-model="code" type="password" class="input" :placeholder="masked || '填新的授权码'" />
+      </label>
+      <p v-if="msg" class="msg" :class="{ ok: msgOk }">{{ msg }}</p>
+      <div class="btns">
+        <button class="btn btn-primary" :disabled="busy" @click="onSave">保存</button>
+        <button class="btn" :disabled="busy" @click="onTest">发送测试邮件</button>
+      </div>
     </div>
   </main>
 </template>
 
 <style scoped>
-.settings { max-width: 480px; margin: 0 auto; padding: 16px; }
-.top { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
-.top h2 { flex: 1; margin: 0; }
-.link { border: none; background: none; color: #3370ff; cursor: pointer; }
-.tip { color: #999; font-size: 13px; }
-label { display: block; margin: 12px 0; }
-input { width: 100%; padding: 8px 10px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; margin-top: 4px; }
-.msg { color: #b25000; }
-.btns { display: flex; gap: 8px; }
-.btns button { padding: 8px 18px; border: none; border-radius: 8px; background: #3370ff; color: #fff; cursor: pointer; }
-.btns button:disabled { opacity: .6; cursor: not-allowed; }
+.settings {
+  padding: 24px;
+  max-width: 640px;
+  margin: 0 auto;
+}
+.card {
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 24px 28px;
+  box-shadow: var(--shadow-card);
+}
+.tip {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  margin: 0 0 18px;
+}
+.field {
+  display: block;
+  margin-bottom: 16px;
+}
+.label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 500;
+}
+.msg {
+  margin: 12px 0 0;
+  color: var(--color-danger);
+  font-size: 13px;
+}
+.msg.ok {
+  color: var(--color-success);
+}
+.btns {
+  display: flex;
+  gap: 10px;
+  margin-top: 18px;
+}
 </style>

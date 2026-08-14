@@ -1,12 +1,37 @@
 <script setup>
 defineProps({ message: { type: Object, default: null } })
 
-function taskStatusText(t) {
-  if (!t) return ''
-  if (t.status === 'executed') return '✅ 已完成'
-  if (t.status === 'failed') return '❌ 失败'
-  if (t.status === 'pending_confirm') return '⏳ 待确认'
-  return ''
+function statusBadge(s) {
+  switch (s) {
+    case 'executed':
+      return { text: '✅ 已完成', cls: 'badge-success' }
+    case 'failed':
+      return { text: '❌ 失败', cls: 'badge-danger' }
+    case 'pending_confirm':
+      return { text: '⏳ 待确认', cls: 'badge-warning' }
+    case 'need_clarify':
+      return { text: '❓ 待澄清', cls: 'badge-warning' }
+    case 'error':
+      return { text: '⚠️ 错误', cls: 'badge-danger' }
+    default:
+      return { text: '已提交', cls: 'badge-muted' }
+  }
+}
+
+function stepStatus(t) {
+  if (!t) return null
+  switch (t.status) {
+    case 'executed':
+      return { text: '已完成', cls: 'badge-success' }
+    case 'failed':
+      return { text: '失败', cls: 'badge-danger' }
+    case 'pending_confirm':
+      return { text: '待确认', cls: 'badge-warning' }
+    case 'pending':
+      return { text: '待执行', cls: 'badge-muted' }
+    default:
+      return null
+  }
 }
 
 function taskResult(t) {
@@ -22,29 +47,96 @@ function taskResult(t) {
 
 <template>
   <div v-if="message" class="card">
-    <p class="text">{{ message.text }}</p>
-    <p v-if="message.task_id" class="status">任务已提交（ID: {{ message.task_id }}）· 状态：{{ message.status }}</p>
+    <div class="card-head">
+      <span class="badge" :class="statusBadge(message.status).cls">
+        {{ statusBadge(message.status).text }}
+      </span>
+      <span v-if="message.task_id" class="task-id">任务 #{{ message.task_id }}</span>
+    </div>
     <p v-if="message.status === 'need_clarify'" class="question">❓ {{ message.question }}</p>
-    <p v-else-if="message.message" class="question">⚠️ {{ message.message }}</p>
-    <ul v-else-if="message.tasks && message.tasks.length" class="tasks">
-      <li v-for="(t, i) in message.tasks" :key="i">
-        {{ i + 1 }}. {{ t.action }}<template v-if="t.target"> {{ t.target }}</template>
-        <span v-if="t.high_risk" class="risk">（高危）</span>
-        <span class="task-status">{{ taskStatusText(t) }}</span>
-        <span v-if="taskResult(t)" class="task-result">{{ taskResult(t) }}</span>
+    <p v-else-if="message.message" class="message-text">{{ message.message }}</p>
+    <ul v-if="message.tasks && message.tasks.length" class="tasks">
+      <li v-for="(t, i) in message.tasks" :key="i" class="task-step">
+        <span class="step-no">{{ i + 1 }}</span>
+        <span class="step-action">
+          {{ t.action }}<template v-if="t.target"> {{ t.target }}</template>
+        </span>
+        <span v-if="t.high_risk" class="badge badge-danger">高危</span>
+        <span v-if="stepStatus(t)" class="badge" :class="stepStatus(t).cls">
+          {{ stepStatus(t).text }}
+        </span>
+        <span v-if="taskResult(t)" class="step-result">{{ taskResult(t) }}</span>
       </li>
     </ul>
   </div>
 </template>
 
 <style scoped>
-.card { background: #f7f8fa; border-radius: 8px; padding: 12px 16px; margin-bottom: 12px; }
-.text { margin: 0 0 6px; }
-.status { margin: 0 0 8px; font-size: 12px; color: #999; }
-.question { margin: 0; color: #b25000; }
-.tasks { margin: 0; padding-left: 20px; }
-.tasks li { margin-bottom: 4px; }
-.risk { color: #e64340; font-size: 12px; }
-.task-status { margin-left: 6px; font-size: 12px; color: #3370ff; }
-.task-result { margin-left: 6px; font-size: 12px; color: #666; }
+.card {
+  max-width: 720px;
+  margin: 0 auto 14px;
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 16px 20px;
+  box-shadow: var(--shadow-card);
+}
+.card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.task-id {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+.question {
+  margin: 0 0 8px;
+  color: var(--color-warning);
+  white-space: pre-wrap;
+}
+.message-text {
+  margin: 0;
+  color: var(--color-text);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.tasks {
+  padding: 0;
+  margin-top: 4px;
+}
+.task-step {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--color-border-light);
+}
+.task-step:last-child {
+  border-bottom: none;
+}
+.step-no {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--color-bg);
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.step-action {
+  flex: 1;
+  min-width: 0;
+}
+.step-result {
+  width: 100%;
+  padding-left: 28px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
 </style>

@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, nextTick } from 'vue'
 import TaskInput from '../components/TaskInput.vue'
 import ResultCard from '../components/ResultCard.vue'
 import { createTask } from '../api/task'
@@ -10,6 +10,12 @@ const emit = defineEmits(['logout', 'openConfirm', 'openHistory', 'openSettings'
 const messages = ref([])
 const pendingContext = ref(null)
 const sending = ref(false)
+const listEl = ref(null)
+
+async function scrollToBottom() {
+  await nextTick()
+  if (listEl.value) listEl.value.scrollTop = listEl.value.scrollHeight
+}
 
 async function handleSubmit(text) {
   let submitText = text
@@ -19,59 +25,119 @@ async function handleSubmit(text) {
     round = pendingContext.value.round + 1
     pendingContext.value = null
   }
+  messages.value.push({ role: 'user', text: submitText })
+  await scrollToBottom()
   sending.value = true
   try {
     const result = await createTask(submitText, round, props.user.user_id)
-    messages.value.push({ text: submitText, ...(result || {}) })
+    messages.value.push({ role: 'agent', ...(result || {}) })
     if (result && result.status === 'need_clarify') {
       pendingContext.value = { text: submitText, round }
     }
   } catch (e) {
-    messages.value.push({ text: submitText, task_id: '', status: 'error', message: `提交失败：${e.message || e}` })
+    messages.value.push({
+      role: 'agent',
+      task_id: '',
+      status: 'error',
+      message: `提交失败：${e.message || e}`,
+    })
   } finally {
     sending.value = false
+    await scrollToBottom()
   }
 }
 </script>
 
 <template>
-  <main class="chat">
-    <header class="top">
-      <img v-if="user.avatar_url" :src="user.avatar_url" class="avatar" alt="" />
-      <span class="name">{{ user.name }}</span>
-      <button class="logout" @click="emit('openSettings')">我的</button>
-      <button class="logout" @click="emit('openHistory')">历史</button>
-      <button class="logout" @click="emit('openConfirm')">待确认</button>
-      <button class="logout" @click="emit('logout')">退出</button>
-    </header>
-    <section class="messages">
+  <section class="chat">
+    <div class="messages" ref="listEl">
       <div class="welcome">
-        <p>👋 你好，{{ user.name }}</p>
-        <p>输入任务，我来帮你执行。例如：</p>
-        <ul>
+        <p class="welcome-title">👋 你好，{{ user.name }}</p>
+        <p class="welcome-sub">输入任务，我来帮你执行。例如：</p>
+        <ul class="welcome-examples">
           <li>给项目组发邮件，说明明天会议改到3点</li>
           <li>帮我约明天下午和HR的会议</li>
           <li>把报名表里张三的电话更新为138xxxx</li>
         </ul>
       </div>
-      <ResultCard v-for="(m, i) in messages.filter(Boolean)" :key="i" :message="m" />
-      <div v-if="sending" class="card sending">⏳ 处理中…</div>
-    </section>
+      <template v-for="(m, i) in messages.filter(Boolean)" :key="i">
+        <div v-if="m.role === 'user'" class="bubble-user">{{ m.text }}</div>
+        <ResultCard v-else :message="m" />
+      </template>
+      <div v-if="sending" class="bubble-user bubble-typing">⏳ 处理中…</div>
+    </div>
     <TaskInput @submit="handleSubmit" :disabled="sending" />
-  </main>
+  </section>
 </template>
 
 <style scoped>
-.chat { max-width: 720px; margin: 0 auto; display: flex; flex-direction: column; height: 100vh; }
-.top { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-bottom: 1px solid #eee; }
-.avatar { width: 32px; height: 32px; border-radius: 50%; }
-.name { flex: 1; }
-.logout { border: none; background: none; color: #999; cursor: pointer; }
-.messages { flex: 1; overflow-y: auto; padding: 16px; }
-.welcome { background: #f7f8fa; border-radius: 8px; padding: 16px; margin-bottom: 12px; }
-.welcome p { margin: 0 0 8px; }
-.welcome ul { margin: 0; padding-left: 20px; color: #555; }
-.welcome li { margin-bottom: 4px; }
-.card { background: #f7f8fa; border-radius: 8px; padding: 12px 16px; margin-bottom: 12px; }
-.sending { color: #999; }
+.chat {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+}
+
+/* 欢迎卡 */
+.welcome {
+  max-width: 720px;
+  margin: 0 auto 24px;
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 20px 24px;
+  box-shadow: var(--shadow-card);
+}
+.welcome-title {
+  font-size: 17px;
+  font-weight: 600;
+  margin: 0 0 6px;
+}
+.welcome-sub {
+  color: var(--color-text-secondary);
+  margin: 0 0 10px;
+}
+.welcome-examples {
+  padding: 0;
+  color: var(--color-text-secondary);
+}
+.welcome-examples li {
+  position: relative;
+  padding-left: 16px;
+  margin-bottom: 4px;
+}
+.welcome-examples li::before {
+  content: '';
+  position: absolute;
+  left: 2px;
+  top: 9px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-primary);
+}
+
+/* 用户消息气泡 */
+.bubble-user {
+  width: fit-content;
+  max-width: 640px;
+  margin-left: auto;
+  margin-bottom: 14px;
+  background: var(--color-primary);
+  color: #fff;
+  border-radius: var(--radius-md) var(--radius-md) var(--radius-sm) var(--radius-md);
+  padding: 10px 14px;
+  box-shadow: var(--shadow-card);
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.bubble-typing {
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+}
 </style>

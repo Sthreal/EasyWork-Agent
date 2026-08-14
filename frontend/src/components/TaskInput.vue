@@ -1,7 +1,9 @@
 <script setup>
+import { ref } from 'vue'
+
 defineProps({ disabled: { type: Boolean, default: false } })
 const emit = defineEmits(['submit'])
-import { ref } from 'vue'
+
 const text = ref('')
 
 function send() {
@@ -20,13 +22,56 @@ function send() {
       placeholder="输入任务，例如：给项目组发邮件，说明明天会议改到3点"
       @keyup.enter="send"
     />
-    <button :disabled="disabled" @click="send">发送</button>
+    <button class="send-btn" :disabled="disabled" @click="send">发送</button>
   </div>
 </template>
 
 <style scoped>
-.input-row { display: flex; gap: 8px; padding: 12px 16px; border-top: 1px solid #eee; }
-.input-row input { flex: 1; padding: 10px 12px; border: 1px solid #ddd; border-radius: 8px; }
-.input-row button { padding: 10px 20px; border: none; border-radius: 8px; background: #3370ff; color: #fff; cursor: pointer; }
-.input-row button:disabled, .input-row input:disabled { opacity: .6; cursor: not-allowed; }
+.input-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 24px;
+  border-top: 1px solid var(--color-border);
+  background: var(--color-card);
+}
+.input-row input {
+  flex: 1;
+  padding: 11px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-family: inherit;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.input-row input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(51, 112, 255, 0.12);
+}
+.input-row input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.send-btn {
+  padding: 11px 26px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 14px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.send-btn:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+}
+.send-btn:active:not(:disabled) {
+  background: var(--color-primary-active);
+}
+.send-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
 </style>
