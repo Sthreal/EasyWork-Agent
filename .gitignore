@@ -5,10 +5,10 @@ node_modules/
 dist/
 .vscode/
 .idea/
-.DS_Store
-
-# 数据库文件
+.DS_Store
 *.db
-
-# 日志
+*.db-shm
+*.db-wal
 logs/
+.venv/
+venv/
