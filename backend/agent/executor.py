@@ -11,7 +11,7 @@ from backend.tools.validation import validate_args
 
 REQUIRED_ARGS = {
     "email": {"send": ["to", "subject"], "read": []},
-    "sheets": {"write": ["filename", "changes"], "read": ["filename"]},
+    "sheets": {"write": ["filename", "changes"], "read": ["filename"], "write_by_key": ["filename", "key_column", "key_value", "field", "value"]},
     "calendar": {"create": ["summary", "start_ts", "end_ts"], "update": ["event_id", "summary"]},
 }
 
@@ -38,7 +38,7 @@ def execute_item(item_id: int, db=None) -> dict:
         item = db.get(TaskItem, item_id)
         if item is None:
             return {"ok": False, "message": "子任务不存在"}
-        result = _run(item)
+        result = _run(item, db)
         item.result = json.dumps(result, ensure_ascii=False)
         item.status = "executed" if result["ok"] else "failed"
         return result
@@ -48,7 +48,7 @@ def execute_item(item_id: int, db=None) -> dict:
         item = own.get(TaskItem, item_id)
         if item is None:
             return {"ok": False, "message": "子任务不存在"}
-        result = _run(item)
+        result = _run(item, own)
         item.result = json.dumps(result, ensure_ascii=False)
         item.status = "executed" if result["ok"] else "failed"
         own.commit()
@@ -57,7 +57,7 @@ def execute_item(item_id: int, db=None) -> dict:
         own.close()
 
 
-def _run(item: TaskItem) -> dict:
+def _run(item: TaskItem, db=None) -> dict:
     tool = get_tool(item.tool)
     if tool is None:
         return {"ok": False, "message": f"无法识别工具：{item.tool or '未指定'}"}
@@ -71,12 +71,34 @@ def _run(item: TaskItem) -> dict:
     missing = _missing_args(item.tool, args)
     if missing:
         return {"ok": False, "message": f"参数不足：{'、'.join(missing)}"}
+    if item.tool == "email" and action == "send":
+        _inject_mail_config(item, args, db)
     ok, error = validate_args(item.tool, args)
     if not ok:
         return {"ok": False, "message": f"参数不合法：{error}"}
     _normalize(item.tool, args)
     result = tool.execute(**args)
     return {"ok": result.ok, "message": result.message, "data": result.data}
+
+
+def _inject_mail_config(item: TaskItem, args: dict, db=None) -> None:
+    """发信时优先用用户绑定的邮箱+授权码，未绑定则用系统默认。"""
+    own = db is None
+    if own:
+        db = SessionLocal()
+    try:
+        from backend.models.task import Task
+        from backend.models.user import User
+
+        task = db.get(Task, item.task_id)
+        if task and task.user_id:
+            user = db.get(User, task.user_id)
+            if user and user.qq_mail_address:
+                args["mail_address"] = user.qq_mail_address
+                args["mail_auth_code"] = user.qq_mail_auth_code
+    finally:
+        if own:
+            db.close()
 
 
 def _missing_args(tool: str, args: dict) -> list[str]:

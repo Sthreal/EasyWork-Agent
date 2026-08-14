@@ -5,7 +5,7 @@ import ResultCard from '../components/ResultCard.vue'
 import { createTask } from '../api/task'
 
 const props = defineProps({ user: { type: Object, required: true } })
-const emit = defineEmits(['logout', 'openConfirm', 'openHistory'])
+const emit = defineEmits(['logout', 'openConfirm', 'openHistory', 'openSettings'])
 
 const messages = ref([])
 const pendingContext = ref(null)
@@ -39,6 +39,7 @@ async function handleSubmit(text) {
     <header class="top">
       <img v-if="user.avatar_url" :src="user.avatar_url" class="avatar" alt="" />
       <span class="name">{{ user.name }}</span>
+      <button class="logout" @click="emit('openSettings')">我的</button>
       <button class="logout" @click="emit('openHistory')">历史</button>
       <button class="logout" @click="emit('openConfirm')">待确认</button>
       <button class="logout" @click="emit('logout')">退出</button>

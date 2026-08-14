@@ -4,6 +4,7 @@ import LoginPage from './pages/LoginPage.vue'
 import ChatPage from './pages/ChatPage.vue'
 import ConfirmationPage from './pages/ConfirmationPage.vue'
 import HistoryPage from './pages/HistoryPage.vue'
+import SettingsPage from './pages/SettingsPage.vue'
 import { getStoredUser, clearStoredUser, saveStoredUser } from './api/auth'
 
 const params = new URLSearchParams(window.location.search)
@@ -28,8 +29,9 @@ function logout() {
 <template>
   <LoginPage v-if="!user" />
   <template v-else>
-    <ChatPage v-if="view === 'chat'" :user="user" @logout="logout" @openConfirm="view = 'confirm'" @openHistory="view = 'history'" />
+    <ChatPage v-if="view === 'chat'" :user="user" @logout="logout" @openConfirm="view = 'confirm'" @openHistory="view = 'history'" @openSettings="view = 'settings'" />
     <ConfirmationPage v-else-if="view === 'confirm'" @back="view = 'chat'" />
     <HistoryPage v-else-if="view === 'history'" :user="user" @back="view = 'chat'" />
+    <SettingsPage v-else-if="view === 'settings'" :user="user" @back="view = 'chat'" />
   </template>
 </template>

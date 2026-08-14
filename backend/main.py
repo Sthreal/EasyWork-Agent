@@ -7,7 +7,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from backend.api.v1 import auth, confirmation, task
+from backend.api.v1 import auth, confirmation, task, user
 import backend.tools  # noqa: F401 注册工具
 from config.logging import setup_logging
 from config.settings import settings
@@ -28,6 +28,7 @@ app.add_middleware(
 app.include_router(auth.router, prefix="/api/v1", tags=["auth"])
 app.include_router(task.router, prefix="/api/v1", tags=["task"])
 app.include_router(confirmation.router, prefix="/api/v1", tags=["confirmation"])
+app.include_router(user.router, prefix="/api/v1", tags=["user"])
 
 
 @app.middleware("http")
