@@ -1,5 +1,20 @@
 ## v0.3.0（2026-08-15）
 
+### 高价值升级
+- 多轮 Agent 执行循环：子任务执行结果摘要回填模型，模型决定继续/终止（MAX_STEPS=3 防死循环）
+- 工具契约 schema 驱动：BaseTool 增加 description + args_schema（JSON Schema），prompt 注入引导模型生成参数，jsonschema 自动校验
+- JWT 真实鉴权：登录签发 token（HMAC，7 天），接口 token 优先取身份；AUTH_REQUIRED 配置开关（默认兼容模式）
+- 业务审计：AuditLog 表（谁/何时/动作/diff/审批人），任务/工具/确认/登录埋点 + 查询接口
+
+### 重构
+- 抽出 services/task_service（api 变薄，编排进服务层）
+
+### 测试
+- 后端单测 109 个
+
+---
+## v0.3.0（2026-08-15）
+
 ### 新增（B/C/D/E/F）
 - 任务历史搜索/筛选：关键词、状态（进行中/已完成/全部）、时间范围（后端查询参数 + 分页 limit/offset + total）
 - 历史一键重发：用原文本重新提交（force 绕过 5 分钟去重），生成新任务

@@ -1,7 +1,7 @@
 """任务/子任务表。"""
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, String, Text, func
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.db import Base
@@ -15,6 +15,7 @@ class Task(Base):
     text: Mapped[str] = mapped_column(Text)
     status: Mapped[str] = mapped_column(String(32), default="planned")
     question: Mapped[str | None] = mapped_column(Text, nullable=True)
+    step: Mapped[int] = mapped_column(Integer, default=0)  # 多轮执行当前轮次
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
     items: Mapped[list["TaskItem"]] = relationship(
@@ -33,7 +34,7 @@ class TaskItem(Base):
     high_risk: Mapped[bool] = mapped_column(Boolean, default=False)
     tool: Mapped[str] = mapped_column(String(64), default="")
     args: Mapped[str] = mapped_column(Text, default="{}")
-    status: Mapped[str] = mapped_column(String(32), default="pending")  # pending_confirm/pending/executed/failed/skipped
+    status: Mapped[str] = mapped_column(String(32), default="pending")
     result: Mapped[str] = mapped_column(Text, default="")
 
     task: Mapped[Task] = relationship(back_populates="items")

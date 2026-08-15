@@ -1,14 +1,16 @@
-"""任务服务：创建/查询/去重/预览/状态聚合（业务编排层）。"""
+"""任务服务：创建/查询/去重/预览/状态聚合/多轮执行（业务编排层）。"""
 import json
 from datetime import datetime, timedelta
 
 from sqlalchemy.orm import Session
 
 from backend.agent.executor import execute_item, save_item
+from backend.agent.loop import MAX_STEPS, build_summary, should_continue
 from backend.agent.planner import plan
 from backend.agent.task_status import refresh_task_status
 from backend.models.confirmation import Confirmation
 from backend.models.task import Task, TaskItem
+from backend.safety.audit import log_audit
 from backend.safety.gate import create_confirmation
 from backend.schemas.task import (
     TaskCreate,
@@ -23,7 +25,7 @@ DEDUP_WINDOW_SECONDS = 300
 
 
 def create_task(payload: TaskCreate, db: Session, effective_user_id: int | None = None) -> TaskResponse:
-    """接收任务 → 去重(可跳过) → 拆解 → 落库 → 低危执行/高危确认 → 聚合任务状态。"""
+    """接收任务 → 去重(可跳过) → 拆解 → 多轮执行 → 高危确认 → 聚合任务状态。"""
     owner_id = effective_user_id if effective_user_id is not None else payload.user_id
     if not payload.force:
         cached = _find_recent_duplicate(db, payload.text, owner_id)
@@ -45,7 +47,6 @@ def create_task(payload: TaskCreate, db: Session, effective_user_id: int | None 
         db.add(task)
         db.commit()
         db.refresh(task)
-        from backend.safety.audit import log_audit
         log_audit(db, user_id=owner_id, action="task.create", target=payload.text, detail={"task_id": task.id, "status": "need_clarify"})
         db.commit()
         return TaskResponse(
@@ -61,37 +62,46 @@ def create_task(payload: TaskCreate, db: Session, effective_user_id: int | None 
     db.flush()
 
     items_out = []
-    for item in result["tasks"]:
-        row = save_item(db, task.id, item)
-        db.flush()
-        if item.get("high_risk") and item.get("tool"):
-            preview_text, preview_error = _sheets_preview(item)
-            if preview_error:
-                row.status = "failed"
-                row.result = json.dumps({"ok": False, "message": preview_error}, ensure_ascii=False)
-                items_out.append(_item_schema(row, None))
+    step = 0
+    batch = result["tasks"]
+    while True:
+        step += 1
+        task.step = step
+        for item in batch:
+            row = save_item(db, task.id, item)
+            db.flush()
+            if item.get("high_risk") and item.get("tool"):
+                preview_text, preview_error = _sheets_preview(item)
+                if preview_error:
+                    row.status = "failed"
+                    row.result = json.dumps({"ok": False, "message": preview_error}, ensure_ascii=False)
+                    items_out.append(_item_schema(row, None))
+                else:
+                    conf = create_confirmation(
+                        db,
+                        task_id=task.id,
+                        task_item_id=row.id,
+                        action=item["action"],
+                        target=item["target"],
+                        params=preview_text or item["params"],
+                    )
+                    row.status = "pending_confirm"
+                    row.result = json.dumps({"ok": False, "message": ("等待确认：" + preview_text) if preview_text else "等待确认"}, ensure_ascii=False)
+                    items_out.append(_item_schema(row, conf.id if conf else None))
             else:
-                conf = create_confirmation(
-                    db,
-                    task_id=task.id,
-                    task_item_id=row.id,
-                    action=item["action"],
-                    target=item["target"],
-                    params=preview_text or item["params"],
-                )
-                row.status = "pending_confirm"
-                row.result = json.dumps({"ok": False, "message": ("等待确认：" + preview_text) if preview_text else "等待确认"}, ensure_ascii=False)
-                items_out.append(_item_schema(row, conf.id if conf else None))
-        else:
-            exec_result = execute_item(row.id, db=db)
-            if exec_result:
-                row.status = "executed" if exec_result["ok"] else "failed"
-                row.result = json.dumps(exec_result, ensure_ascii=False)
-            items_out.append(_item_schema(row, None, exec_result))
+                exec_result = execute_item(row.id, db=db)
+                if exec_result:
+                    row.status = "executed" if exec_result["ok"] else "failed"
+                    row.result = json.dumps(exec_result, ensure_ascii=False)
+                items_out.append(_item_schema(row, None, exec_result))
+
+        cont = should_continue(task, build_summary(items_out), step)
+        if cont["done"] or not cont["tasks"]:
+            break
+        batch = cont["tasks"]
 
     final_status = refresh_task_status(db, task.id)
-    from backend.safety.audit import log_audit
-    log_audit(db, user_id=owner_id, action="task.create", target=payload.text, detail={"task_id": task.id, "status": final_status or task.status})
+    log_audit(db, user_id=owner_id, action="task.create", target=payload.text, detail={"task_id": task.id, "status": final_status or task.status, "steps": step})
     db.commit()
     return TaskResponse(
         task_id=str(task.id),
