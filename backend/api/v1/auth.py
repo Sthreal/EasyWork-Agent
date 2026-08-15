@@ -11,6 +11,7 @@ from backend.feishu.auth import build_authorize_url, exchange_code
 from backend.feishu.token_store import save_token
 from backend.models.user import User
 from backend.schemas.auth import AuthCallbackResponse, AuthStatusResponse
+from backend.security import create_token
 from config.settings import settings
 
 router = APIRouter(prefix="/auth")
@@ -38,7 +39,7 @@ def callback(
     code: str | None = Query(None),
     error: str | None = Query(None),
 ):
-    """飞书授权回调：换令牌 → 取用户信息 → 落库用户 → 存令牌。"""
+    """飞书授权回调：换令牌 → 取用户信息 → 落库用户 → 存令牌 → 签发 JWT。"""
     if not code or error:
         reason = error or "未收到授权码，请重新登录"
         if "application/json" in accept:
@@ -46,7 +47,7 @@ def callback(
         return _render_failure_page(reason)
 
     result = exchange_code(code)
-    token, user_info = result["token"], result["user_info"]
+    feishu_token, user_info = result["token"], result["user_info"]
 
     user = db.query(User).filter_by(feishu_open_id=user_info["open_id"]).first()
     if user is None:
@@ -59,7 +60,8 @@ def callback(
         db.commit()
         db.refresh(user)
 
-    save_token(db, user.id, token)
+    save_token(db, user.id, feishu_token)
+    jwt_token = create_token(user.id)
 
     if "application/json" in accept:
         return AuthCallbackResponse(
@@ -67,16 +69,18 @@ def callback(
             open_id=user.feishu_open_id,
             name=user.name,
             avatar_url=user.avatar_url,
+            token=jwt_token,
         )
-    return _render_success_page(user)
+    return _render_success_page(user, jwt_token)
 
 
-def _render_success_page(user: User) -> HTMLResponse:
+def _render_success_page(user: User, jwt_token: str) -> HTMLResponse:
     data = {
         "user_id": user.id,
         "open_id": user.feishu_open_id,
         "name": user.name,
         "avatar_url": user.avatar_url,
+        "token": jwt_token,
     }
     query = urlencode({"user": json.dumps(data, ensure_ascii=False)})
     target = f"{settings.frontend_url}/?{query}"

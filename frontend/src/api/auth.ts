@@ -3,6 +3,7 @@ export interface User {
   open_id: string
   name: string
   avatar_url: string
+  token?: string
 }
 
 const KEY = 'office_agent_user'
@@ -23,4 +24,12 @@ export function saveStoredUser(user: User): void {
 
 export function clearStoredUser(): void {
   localStorage.removeItem(KEY)
+}
+
+export function getAuthHeaders(): Record<string, string> {
+  const user = getStoredUser()
+  if (user && user.token) {
+    return { Authorization: `Bearer ${user.token}` }
+  }
+  return {}
 }

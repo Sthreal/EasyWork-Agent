@@ -1,3 +1,5 @@
+import { getAuthHeaders } from './auth'
+
 export interface TaskItem {
   action: string
   target: string
@@ -51,7 +53,7 @@ export async function createTask(text: string, round = 1, userId?: number, force
   try {
     const resp = await fetch('/api/v1/tasks', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
       body: JSON.stringify({ text, round, user_id: userId ?? null, force }),
       signal: controller.signal,
     })
@@ -71,7 +73,7 @@ export async function listTasks(params: TaskListParams = {}): Promise<TaskListRe
   if (params.dateTo) qs.set('date_to', params.dateTo)
   if (params.limit != null) qs.set('limit', String(params.limit))
   if (params.offset != null) qs.set('offset', String(params.offset))
-  const resp = await fetch(`/api/v1/tasks?${qs.toString()}`)
+  const resp = await fetch(`/api/v1/tasks?${qs.toString()}`, { headers: getAuthHeaders() })
   if (!resp.ok) throw new Error(`获取任务历史失败：${resp.status}`)
   const data = await resp.json()
   return { items: data.items || [], total: data.total || 0 }

@@ -30,5 +30,9 @@ class Settings(BaseSettings):
     llm_base_url: str = ""
     llm_model: str = ""
 
+    # 鉴权（JWT）
+    auth_required: bool = False
+    jwt_secret: str = "dev-secret-change-me-please-32bytes-min"
+
 
 settings = Settings()

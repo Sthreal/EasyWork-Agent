@@ -1,4 +1,4 @@
-﻿"""登录请求/响应结构。"""
+"""登录请求/响应结构。"""
 from pydantic import BaseModel
 
 
@@ -11,6 +11,7 @@ class AuthCallbackResponse(BaseModel):
     open_id: str
     name: str
     avatar_url: str
+    token: str = ""
 
 
 class AuthStatusResponse(BaseModel):

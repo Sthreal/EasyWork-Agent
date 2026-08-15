@@ -22,10 +22,11 @@ MAX_CLARIFY_ROUNDS = 3
 DEDUP_WINDOW_SECONDS = 300
 
 
-def create_task(payload: TaskCreate, db: Session) -> TaskResponse:
+def create_task(payload: TaskCreate, db: Session, effective_user_id: int | None = None) -> TaskResponse:
     """接收任务 → 去重(可跳过) → 拆解 → 落库 → 低危执行/高危确认 → 聚合任务状态。"""
+    owner_id = effective_user_id if effective_user_id is not None else payload.user_id
     if not payload.force:
-        cached = _find_recent_duplicate(db, payload.text, payload.user_id)
+        cached = _find_recent_duplicate(db, payload.text, owner_id)
         if cached:
             return _task_response(db, cached)
 
@@ -40,7 +41,7 @@ def create_task(payload: TaskCreate, db: Session) -> TaskResponse:
                 tasks=[],
                 message="追问次数已达上限，请重新描述任务",
             )
-        task = Task(user_id=payload.user_id, text=payload.text, status="need_clarify", question=result["question"])
+        task = Task(user_id=owner_id, text=payload.text, status="need_clarify", question=result["question"])
         db.add(task)
         db.commit()
         db.refresh(task)
@@ -52,7 +53,7 @@ def create_task(payload: TaskCreate, db: Session) -> TaskResponse:
             question=result["question"],
         )
 
-    task = Task(user_id=payload.user_id, text=payload.text, status="planned", question=None)
+    task = Task(user_id=owner_id, text=payload.text, status="planned", question=None)
     db.add(task)
     db.flush()
 
