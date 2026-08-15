@@ -16,6 +16,8 @@ class BaseTool(ABC):
     """所有工具必须实现 execute；high_risk=True 表示执行前需员工确认。"""
 
     name: str = "base"
+    description: str = ""
+    args_schema: dict = {}
     high_risk: bool = False
 
     @abstractmethod

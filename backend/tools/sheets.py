@@ -14,7 +14,19 @@ class SheetTool(BaseTool):
     """本地表格工具：只允许操作 DATA_DIR 内文件。"""
 
     name = "sheets"
-    high_risk = False  # 写操作由高危关键词判定（更新/写入=高危）
+    high_risk = False
+    description = '本地表格：读取/按表头定位写入（高危）/预览（高危）'
+    args_schema = {
+        "type": "object",
+        "required": ["action"],
+        "properties": {"action": {"type": "string", "enum": ["read", "write", "write_by_key", "preview"]}},
+        "oneOf": [
+            {"properties": {"action": {"const": "read"}, "filename": {"type": "string"}, "limit": {"type": "integer"}}, "required": ["action", "filename"]},
+            {"properties": {"action": {"const": "write_by_key"}, "filename": {"type": "string"}, "key_column": {"type": "string"}, "key_value": {"type": "string"}, "field": {"type": "string"}, "value": {"type": "string"}}, "required": ["action", "filename", "key_column", "key_value", "field", "value"]},
+            {"properties": {"action": {"const": "write"}, "filename": {"type": "string"}, "changes": {"type": "array"}}, "required": ["action", "filename", "changes"]},
+            {"properties": {"action": {"const": "preview"}, "filename": {"type": "string"}, "changes": {"type": "array"}}, "required": ["action", "filename", "changes"]},
+        ],
+    }  # 写操作由高危关键词判定（更新/写入=高危）
 
     def execute(self, action: str = "", **kwargs) -> ToolResult:
         try:

@@ -7,7 +7,7 @@ from backend.db import SessionLocal
 from backend.models.task import TaskItem
 from backend.safety.whitelist import is_allowed
 from backend.tools.registry import get_tool
-from backend.tools.validation import validate_args
+from backend.tools.validation import validate_args, validate_args_by_schema
 
 REQUIRED_ARGS = {
     "email": {"send": ["to", "subject"], "read": []},
@@ -71,6 +71,10 @@ def _run(item: TaskItem, db=None) -> dict:
     missing = _missing_args(item.tool, args)
     if missing:
         return {"ok": False, "message": f"参数不足：{'、'.join(missing)}"}
+    if getattr(tool, "args_schema", None):
+        ok_schema, err_schema = validate_args_by_schema(args, tool.args_schema)
+        if not ok_schema:
+            return {"ok": False, "message": f"参数不合法：{err_schema}"}
     if item.tool == "email" and action == "send":
         _inject_mail_config(item, args, db)
     ok, error = validate_args(item.tool, args)

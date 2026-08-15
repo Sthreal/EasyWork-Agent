@@ -78,3 +78,22 @@ def test_sheets_write_by_key_missing_field():
     )
     assert ok is False
     assert "field" in msg
+
+
+def test_schema_rejects_missing():
+    schema = {"type": "object", "required": ["action", "to"], "properties": {"action": {"type": "string"}, "to": {"type": "string"}}}
+    ok, msg = validate_args_by_schema({"action": "send"}, schema)
+    assert ok is False
+    assert "to" in msg or "required" in msg.lower() or "缺少" in msg
+
+
+def test_schema_rejects_wrong_type():
+    schema = {"type": "object", "required": ["limit"], "properties": {"limit": {"type": "integer"}}}
+    ok, msg = validate_args_by_schema({"limit": "abc"}, schema)
+    assert ok is False
+
+
+def test_schema_accepts_valid():
+    schema = {"type": "object", "required": ["action"], "properties": {"action": {"type": "string"}}}
+    ok, msg = validate_args_by_schema({"action": "read"}, schema)
+    assert ok is True

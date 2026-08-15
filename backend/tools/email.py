@@ -21,6 +21,26 @@ class EmailTool(BaseTool):
 
     name = "email"
     high_risk = False
+    description = 'QQ邮箱：发送邮件（高危）/读取收件箱'
+    args_schema = {
+        "type": "object",
+        "required": ["action"],
+        "properties": {"action": {"type": "string", "enum": ["send", "read"]}},
+        "oneOf": [
+            {
+                "properties": {
+                    "action": {"const": "send"},
+                    "to": {"type": "string"},
+                    "subject": {"type": "string"},
+                    "body": {"type": "string"},
+                    "mail_address": {"type": "string"},
+                    "mail_auth_code": {"type": "string"},
+                },
+                "required": ["action", "to", "subject"],
+            },
+            {"properties": {"action": {"const": "read"}, "limit": {"type": "integer"}}, "required": ["action"]},
+        ],
+    }
 
     def execute(self, action: str = "", **kwargs) -> ToolResult:
         if action == "send":

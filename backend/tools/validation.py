@@ -81,3 +81,19 @@ def _parse_ts(value):
         except ValueError:
             return None
     return None
+
+def validate_args_by_schema(args: dict, schema: dict) -> tuple[bool, str]:
+    """按 JSON Schema 校验参数（schema 为空则放行）。"""
+    if not schema:
+        return True, ""
+    try:
+        import jsonschema
+
+        jsonschema.validate(instance=args, schema=schema)
+        return True, ""
+    except jsonschema.ValidationError as exc:
+        if exc.path:
+            return False, f"{'.'.join(str(p) for p in exc.path)}：{exc.message}"
+        return False, exc.message
+    except jsonschema.SchemaError:
+        return True, ""

@@ -77,3 +77,10 @@ def test_plan_invalid_json_raises(monkeypatch):
     monkeypatch.setattr(planner.LLMClient, "chat", lambda self, messages, **kwargs: "不是JSON")
     with pytest.raises(ValueError):
         planner.plan("随便说点什么")
+
+def test_planner_messages_include_tool_schema():
+    from backend.llm.messages import build_planner_messages
+
+    messages = build_planner_messages("读取报名表")
+    assert "参数 Schema" in messages[0]["content"]
+    assert "email" in messages[0]["content"]
