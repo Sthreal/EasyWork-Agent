@@ -81,7 +81,12 @@ def _run(item: TaskItem, db=None) -> dict:
     if not ok:
         return {"ok": False, "message": f"参数不合法：{error}"}
     _normalize(item.tool, args)
+    before = None
+    if item.tool == "sheets" and action in ("write", "write_by_key"):
+        before = _sheet_snapshot(args.get("filename", ""))
     result = tool.execute(**args)
+    after = _sheet_snapshot(args.get("filename", "")) if before is not None else None
+    _audit_tool(item, args, result, before, after, db)
     return {"ok": result.ok, "message": result.message, "data": result.data}
 
 
@@ -120,3 +125,42 @@ def _normalize(tool: str, args: dict) -> None:
                     args[key] = int(time.mktime(datetime.fromisoformat(v).timetuple()))
                 except ValueError:
                     args[key] = None
+
+def _sheet_snapshot(filename: str):
+    """读表格快照用于审计 diff；失败返回 None。"""
+    try:
+        from backend.tools.sheets import SheetTool
+
+        r = SheetTool().execute(action="read", filename=filename, limit=200)
+        return r.data.get("rows") if r.ok else None
+    except Exception:
+        return None
+
+
+def _audit_tool(item: TaskItem, args: dict, result, before, after, db) -> None:
+    """记录工具执行审计（best-effort，失败不影响主流程）。"""
+    own = db is None
+    if own:
+        db = SessionLocal()
+    try:
+        from backend.models.task import Task
+        from backend.safety.audit import log_audit
+
+        task = db.get(Task, item.task_id)
+        log_audit(
+            db,
+            user_id=task.user_id if task else None,
+            action=f"tool.{item.tool}.{args.get('action', '')}",
+            target=str(item.target or ""),
+            detail=result.message,
+            diff_before=before,
+            diff_after=after,
+            status="ok" if result.ok else "failed",
+        )
+        if own:
+            db.commit()
+    except Exception:
+        pass
+    finally:
+        if own:
+            db.close()

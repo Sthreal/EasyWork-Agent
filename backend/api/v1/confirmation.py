@@ -64,7 +64,17 @@ def decide(
                 item.result = json.dumps({"ok": False, "message": "已拒绝"}, ensure_ascii=False)
     if row.task_id:
         refresh_task_status(db, row.task_id)
-        db.commit()
+    from backend.safety.audit import log_audit
+    log_audit(
+        db,
+        user_id=effective_user,
+        action="confirmation.approve" if payload.approve else "confirmation.reject",
+        target=f"{row.action} {row.target}",
+        detail={"task_id": row.task_id, "execution_result": execution_result},
+        confirmation_id=row.id,
+        status=row.status,
+    )
+    db.commit()
     return _to_response(row, execution_result)
 
 

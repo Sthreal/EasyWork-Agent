@@ -61,6 +61,9 @@ def callback(
         db.refresh(user)
 
     save_token(db, user.id, feishu_token)
+    from backend.safety.audit import log_audit
+    log_audit(db, user_id=user.id, action="auth.login", target=user.feishu_open_id, detail={"name": user.name})
+    db.commit()
     jwt_token = create_token(user.id)
 
     if "application/json" in accept:

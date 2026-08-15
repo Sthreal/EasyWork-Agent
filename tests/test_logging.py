@@ -3,8 +3,13 @@ import logging
 
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
 
+from backend.db import Base, get_db
 from backend.main import app
+from backend.models import audit, confirmation, feishu_token, task, user  # noqa: F401 注册模型
 from config.logging import setup_logging
 import backend.services.task_service as task_service
 
@@ -17,8 +22,23 @@ def log_file(tmp_path):
 @pytest.fixture()
 def client(log_file):
     setup_logging(log_file=log_file, level=logging.INFO)
+    engine = create_engine(
+        "sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool
+    )
+    testing_session = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    Base.metadata.create_all(bind=engine)
+
+    def override_get_db():
+        db = testing_session()
+        try:
+            yield db
+        finally:
+            db.close()
+
+    app.dependency_overrides[get_db] = override_get_db
     with TestClient(app, raise_server_exceptions=False) as c:
         yield c
+    app.dependency_overrides.clear()
 
 
 def test_request_written_to_log_file(client, log_file):

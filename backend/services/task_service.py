@@ -45,6 +45,9 @@ def create_task(payload: TaskCreate, db: Session, effective_user_id: int | None 
         db.add(task)
         db.commit()
         db.refresh(task)
+        from backend.safety.audit import log_audit
+        log_audit(db, user_id=owner_id, action="task.create", target=payload.text, detail={"task_id": task.id, "status": "need_clarify"})
+        db.commit()
         return TaskResponse(
             task_id=str(task.id),
             status=task.status,
@@ -87,6 +90,8 @@ def create_task(payload: TaskCreate, db: Session, effective_user_id: int | None 
             items_out.append(_item_schema(row, None, exec_result))
 
     final_status = refresh_task_status(db, task.id)
+    from backend.safety.audit import log_audit
+    log_audit(db, user_id=owner_id, action="task.create", target=payload.text, detail={"task_id": task.id, "status": final_status or task.status})
     db.commit()
     return TaskResponse(
         task_id=str(task.id),
