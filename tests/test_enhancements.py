@@ -13,7 +13,7 @@ from backend.main import app
 from backend.models import confirmation, feishu_token, task, user  # noqa: F401 注册模型
 from backend.models.task import Task, TaskItem
 from backend.safety.gate import create_confirmation
-import backend.api.v1.task as task_api
+import backend.services.task_service as task_service
 import backend.api.v1.confirmation as conf_api
 import backend.agent.task_status as task_status
 
@@ -44,8 +44,8 @@ def _post_ok(monkeypatch, items, question=None):
     def fake_plan(text):
         return {"tasks": items, "question": question}
 
-    monkeypatch.setattr(task_api, "plan", fake_plan)
-    monkeypatch.setattr(task_api, "execute_item", lambda item_id, **kwargs: {"ok": True, "message": "done", "data": {}})
+    monkeypatch.setattr(task_service, "plan", fake_plan)
+    monkeypatch.setattr(task_service, "execute_item", lambda item_id, **kwargs: {"ok": True, "message": "done", "data": {}})
 
 
 def test_refresh_task_status_precedence(env):
@@ -93,8 +93,8 @@ def test_force_bypass_dedup(env, monkeypatch):
         return {"tasks": [{"action": "读取", "target": "报名表", "params": "", "high_risk": False, "tool": "sheets",
                            "args": {"action": "read", "filename": "报名表.xlsx"}}], "question": None}
 
-    monkeypatch.setattr(task_api, "plan", fake_plan)
-    monkeypatch.setattr(task_api, "execute_item", lambda item_id, **kwargs: {"ok": True, "message": "done", "data": {}})
+    monkeypatch.setattr(task_service, "plan", fake_plan)
+    monkeypatch.setattr(task_service, "execute_item", lambda item_id, **kwargs: {"ok": True, "message": "done", "data": {}})
     r1 = client.post("/api/v1/tasks", json={"text": "读取报名表", "force": True})
     r2 = client.post("/api/v1/tasks", json={"text": "读取报名表", "force": True})
     assert r1.json()["task_id"] != r2.json()["task_id"]

@@ -6,7 +6,7 @@ from fastapi.testclient import TestClient
 
 from backend.main import app
 from config.logging import setup_logging
-import backend.api.v1.task as task_api
+import backend.services.task_service as task_service
 
 
 @pytest.fixture()
@@ -32,7 +32,7 @@ def test_unexpected_error_logged_and_returns_500(client, log_file, monkeypatch):
     def boom(text):
         raise RuntimeError("人造错误 boom")
 
-    monkeypatch.setattr(task_api, "plan", boom)
+    monkeypatch.setattr(task_service, "plan", boom)
     resp = client.post("/api/v1/tasks", json={"text": "制造错误"})
     assert resp.status_code == 500
     content = log_file.read_text(encoding="utf-8")

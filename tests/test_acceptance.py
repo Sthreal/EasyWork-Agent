@@ -11,7 +11,7 @@ from backend.db import Base, get_db
 from backend.main import app
 from backend.models import confirmation, feishu_token, task, user  # noqa: F401 注册模型
 from config.logging import setup_logging
-import backend.api.v1.task as task_api
+import backend.services.task_service as task_service
 import backend.agent.executor as executor_mod
 
 
@@ -57,7 +57,7 @@ def test_unexpected_error_returns_500_and_logged(env, monkeypatch):
     def boom(text):
         raise RuntimeError("验收错误 boom")
 
-    monkeypatch.setattr(task_api, "plan", boom)
+    monkeypatch.setattr(task_service, "plan", boom)
     resp = client.post("/api/v1/tasks", json={"text": "制造错误"})
     assert resp.status_code == 500
     assert "服务器内部错误" in resp.json()["detail"]
@@ -67,7 +67,7 @@ def test_unexpected_error_returns_500_and_logged(env, monkeypatch):
 def test_invalid_tool_args_marks_failed(env, monkeypatch):
     client, _ = env
     monkeypatch.setattr(
-        task_api,
+        task_service,
         "plan",
         lambda text: {
             "tasks": [
@@ -87,7 +87,7 @@ def test_invalid_tool_args_marks_failed(env, monkeypatch):
 def test_whitelist_rejected_marks_failed(env, monkeypatch):
     client, _ = env
     monkeypatch.setattr(
-        task_api,
+        task_service,
         "plan",
         lambda text: {
             "tasks": [
@@ -110,7 +110,7 @@ def test_service_alive_after_errors(env, monkeypatch):
     def boom(text):
         raise RuntimeError("再崩一次")
 
-    monkeypatch.setattr(task_api, "plan", boom)
+    monkeypatch.setattr(task_service, "plan", boom)
     client.post("/api/v1/tasks", json={"text": "错误"})
     resp = client.get("/health")
     assert resp.status_code == 200

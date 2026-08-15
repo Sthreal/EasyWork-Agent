@@ -18,7 +18,7 @@ from backend.main import app
 
 from backend.models import feishu_token, task, user  # noqa: F401 注册模型
 
-import backend.api.v1.task as task_api
+import backend.services.task_service as task_service
 
 
 
@@ -68,7 +68,7 @@ def client():
 
 def test_create_task_returns_planned_tasks(client, monkeypatch):
     monkeypatch.setattr(
-        task_api,
+        task_service,
         "plan",
         lambda text: {
             "tasks": [
@@ -80,7 +80,7 @@ def test_create_task_returns_planned_tasks(client, monkeypatch):
             "question": None,
         },
     )
-    monkeypatch.setattr(task_api, "execute_item", lambda item_id, **kwargs: {"ok": True, "message": "done", "data": {}})
+    monkeypatch.setattr(task_service, "execute_item", lambda item_id, **kwargs: {"ok": True, "message": "done", "data": {}})
     resp = client.post("/api/v1/tasks", json={"text": "给项目组发邮件"})
     assert resp.status_code == 200
     body = resp.json()
@@ -95,7 +95,7 @@ def test_create_task_asks_clarification(client, monkeypatch):
 
     monkeypatch.setattr(
 
-        task_api,
+        task_service,
 
         "plan",
 
@@ -121,7 +121,7 @@ def test_create_task_asks_clarification(client, monkeypatch):
 
 def test_task_saved_and_queryable(client, monkeypatch):
     monkeypatch.setattr(
-        task_api,
+        task_service,
         "plan",
         lambda text: {
             "tasks": [
@@ -133,7 +133,7 @@ def test_task_saved_and_queryable(client, monkeypatch):
             "question": None,
         },
     )
-    monkeypatch.setattr(task_api, "execute_item", lambda item_id, **kwargs: {"ok": True, "message": "done", "data": {}})
+    monkeypatch.setattr(task_service, "execute_item", lambda item_id, **kwargs: {"ok": True, "message": "done", "data": {}})
     resp = client.post("/api/v1/tasks", json={"text": "给项目组发邮件"})
     task_id = resp.json()["task_id"]
 
@@ -153,7 +153,7 @@ def test_create_task_rejects_empty(client):
 
 def test_high_risk_task_creates_confirmation(client, monkeypatch):
     monkeypatch.setattr(
-        task_api,
+        task_service,
         "plan",
         lambda text: {
             "tasks": [
@@ -177,7 +177,7 @@ def test_high_risk_task_creates_confirmation(client, monkeypatch):
 
 
 def test_low_risk_task_executes(client, monkeypatch):
-    monkeypatch.setattr(task_api, "plan", lambda text: {
+    monkeypatch.setattr(task_service, "plan", lambda text: {
         "tasks": [
             {"action": "创建日程", "target": "", "params": "", "high_risk": False, "tool": "calendar",
              "args": {"action": "create", "summary": "开会", "start_ts": "2026-08-14T15:00", "end_ts": "2026-08-14T16:00"}}
@@ -185,7 +185,7 @@ def test_low_risk_task_executes(client, monkeypatch):
         "question": None,
     })
     monkeypatch.setattr(
-        task_api, "execute_item",
+        task_service, "execute_item",
         lambda item_id, **kwargs: {"ok": True, "message": "已创建", "data": {"event_id": "e1"}},
     )
     resp = client.post("/api/v1/tasks", json={"text": "创建日程"})
@@ -202,8 +202,8 @@ def test_duplicate_submission_reuses_result(client, monkeypatch):
                            "args": {"action": "create", "summary": "开会", "start_ts": "2026-08-14T15:00", "end_ts": "2026-08-14T16:00"}}],
                 "question": None}
 
-    monkeypatch.setattr(task_api, "plan", fake_plan)
-    monkeypatch.setattr(task_api, "execute_item", lambda item_id, **kwargs: {"ok": True, "message": "done", "data": {}})
+    monkeypatch.setattr(task_service, "plan", fake_plan)
+    monkeypatch.setattr(task_service, "execute_item", lambda item_id, **kwargs: {"ok": True, "message": "done", "data": {}})
     r1 = client.post("/api/v1/tasks", json={"text": "创建开会日程"})
     r2 = client.post("/api/v1/tasks", json={"text": "创建开会日程"})
     assert r1.json()["task_id"] == r2.json()["task_id"]
@@ -211,7 +211,7 @@ def test_duplicate_submission_reuses_result(client, monkeypatch):
 
 
 def test_max_rounds(client, monkeypatch):
-    monkeypatch.setattr(task_api, "plan", lambda text: {"tasks": [], "question": "你想处理什么？"})
+    monkeypatch.setattr(task_service, "plan", lambda text: {"tasks": [], "question": "你想处理什么？"})
     resp = client.post("/api/v1/tasks", json={"text": "帮我处理一下", "round": 4})
     assert resp.status_code == 200
     body = resp.json()
@@ -228,7 +228,7 @@ def test_sheets_write_preview_in_confirmation(client, monkeypatch):
         lambda self, filename, key_column, key_value, field, header_row=1: {"row": 2, "column": "B", "old": "13800000000"},
     )
     monkeypatch.setattr(
-        task_api,
+        task_service,
         "plan",
         lambda text: {
             "tasks": [
@@ -256,7 +256,7 @@ def test_sheets_write_locate_failure_marks_failed(client, monkeypatch):
 
     monkeypatch.setattr(sheets_mod.SheetTool, "find_cell", boom)
     monkeypatch.setattr(
-        task_api,
+        task_service,
         "plan",
         lambda text: {
             "tasks": [
@@ -274,12 +274,12 @@ def test_sheets_write_locate_failure_marks_failed(client, monkeypatch):
 
 
 def test_create_task_with_user_and_filter(client, monkeypatch):
-    monkeypatch.setattr(task_api, "plan", lambda text: {
+    monkeypatch.setattr(task_service, "plan", lambda text: {
         "tasks": [{"action": "读取", "target": "报名表", "params": "", "high_risk": False, "tool": "sheets",
                    "args": {"action": "read", "filename": "报名表.xlsx"}}],
         "question": None,
     })
-    monkeypatch.setattr(task_api, "execute_item", lambda item_id, **kwargs: {"ok": True, "message": "done", "data": {}})
+    monkeypatch.setattr(task_service, "execute_item", lambda item_id, **kwargs: {"ok": True, "message": "done", "data": {}})
     resp = client.post("/api/v1/tasks", json={"text": "读取报名表内容", "user_id": 7})
     assert resp.status_code == 200
     hist7 = client.get("/api/v1/tasks", params={"user_id": 7}).json()["items"]
@@ -296,8 +296,8 @@ def test_dedup_scoped_by_user(client, monkeypatch):
         return {"tasks": [{"action": "读取", "target": "报名表", "params": "", "high_risk": False, "tool": "sheets",
                            "args": {"action": "read", "filename": "报名表.xlsx"}}], "question": None}
 
-    monkeypatch.setattr(task_api, "plan", fake_plan)
-    monkeypatch.setattr(task_api, "execute_item", lambda item_id, **kwargs: {"ok": True, "message": "done", "data": {}})
+    monkeypatch.setattr(task_service, "plan", fake_plan)
+    monkeypatch.setattr(task_service, "execute_item", lambda item_id, **kwargs: {"ok": True, "message": "done", "data": {}})
     r1 = client.post("/api/v1/tasks", json={"text": "读取报名表内容", "user_id": 7})
     r2 = client.post("/api/v1/tasks", json={"text": "读取报名表内容", "user_id": 7})
     assert r1.json()["task_id"] == r2.json()["task_id"]
