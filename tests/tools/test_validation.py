@@ -1,5 +1,5 @@
 """测试：工具参数校验。"""
-from backend.tools.validation import validate_args
+from backend.tools.validation import validate_args, validate_args_by_schema
 
 
 def test_email_bad_to():
