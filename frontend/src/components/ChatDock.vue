@@ -2,6 +2,7 @@
 import { ref, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import ResultCard from './ResultCard.vue'
 import { createTask } from '../api/task'
+import { saveMessage, listMessages } from '../api/chat'
 
 const props = defineProps({ user: { type: Object, default: null } })
 const emit = defineEmits(['pending-change'])
@@ -20,6 +21,14 @@ async function scrollBottom() {
   if (listEl.value) listEl.value.scrollTop = listEl.value.scrollHeight
 }
 
+async function loadHistory() {
+  const hist = await listMessages(props.user?.user_id)
+  messages.value = hist.map((m) =>
+    m.role === 'agent' ? { role: 'agent', ...(m.payload || {}) } : { role: 'user', text: m.text }
+  )
+  scrollBottom()
+}
+
 async function send() {
   const text = inputText.value.trim()
   if (!text || sending.value) return
@@ -31,11 +40,13 @@ async function send() {
     pendingContext.value = null
   }
   messages.value.push({ role: 'user', text: submitText })
+  saveMessage(props.user?.user_id, 'user', submitText)
   inputText.value = ''
   sending.value = true
   try {
     const result = await createTask(submitText, round, props.user?.user_id)
     messages.value.push({ role: 'agent', ...(result || {}) })
+    saveMessage(props.user?.user_id, 'agent', '', result)
     if (result && result.status === 'need_clarify') {
       pendingContext.value = { text: submitText, round }
     }
@@ -117,6 +128,7 @@ function flashScrollbar(e) {
 onMounted(() => {
   document.addEventListener('click', onDocClick)
   document.addEventListener('keydown', onKey)
+  loadHistory()
 })
 onBeforeUnmount(() => {
   document.removeEventListener('click', onDocClick)
