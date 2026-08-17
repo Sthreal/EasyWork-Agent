@@ -55,7 +55,7 @@ function logout() {
     @logout="logout"
     @open-user="userPanelOpen = true"
   >
-    <WorkbenchPage v-if="view === 'workbench'" />
+    <WorkbenchPage v-if="view === 'workbench'" @pending-change="refreshPending" />
     <ChatPage
       v-else-if="view === 'chat'"
       :user="user"
