@@ -1,11 +1,13 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue'
 import LoginPage from './pages/LoginPage.vue'
+import WorkbenchPage from './pages/WorkbenchPage.vue'
 import ChatPage from './pages/ChatPage.vue'
 import ConfirmationPage from './pages/ConfirmationPage.vue'
 import HistoryPage from './pages/HistoryPage.vue'
 import SettingsPage from './pages/SettingsPage.vue'
 import AppLayout from './components/AppLayout.vue'
+import UserPanel from './components/UserPanel.vue'
 import { listPending } from './api/confirmation'
 import { getStoredUser, clearStoredUser, saveStoredUser } from './api/auth'
 
@@ -20,8 +22,9 @@ if (userParam) {
 }
 
 const user = ref(getStoredUser())
-const view = ref('chat')
+const view = ref('workbench')
 const pendingCount = ref(0)
+const userPanelOpen = ref(false)
 
 async function refreshPending() {
   try {
@@ -50,9 +53,11 @@ function logout() {
     :pending-count="pendingCount"
     @navigate="view = $event"
     @logout="logout"
+    @open-user="userPanelOpen = true"
   >
+    <WorkbenchPage v-if="view === 'workbench'" />
     <ChatPage
-      v-if="view === 'chat'"
+      v-else-if="view === 'chat'"
       :user="user"
       @logout="logout"
       @openConfirm="view = 'confirm'"
@@ -63,4 +68,10 @@ function logout() {
     <HistoryPage v-else-if="view === 'history'" :user="user" @back="view = 'chat'" />
     <SettingsPage v-else-if="view === 'settings'" :user="user" @back="view = 'chat'" />
   </AppLayout>
+  <UserPanel
+    v-if="userPanelOpen && user"
+    :user="user"
+    @close="userPanelOpen = false"
+    @logout="logout"
+  />
 </template>
