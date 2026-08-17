@@ -7,6 +7,7 @@ import ConfirmationPage from './pages/ConfirmationPage.vue'
 import HistoryPage from './pages/HistoryPage.vue'
 import SettingsPage from './pages/SettingsPage.vue'
 import AppLayout from './components/AppLayout.vue'
+import ChatDock from './components/ChatDock.vue'
 import UserPanel from './components/UserPanel.vue'
 import { listPending } from './api/confirmation'
 import { getStoredUser, clearStoredUser, saveStoredUser } from './api/auth'
@@ -74,4 +75,5 @@ function logout() {
     @close="userPanelOpen = false"
     @logout="logout"
   />
+  <ChatDock v-if="user" :user="user" @pending-change="refreshPending" />
 </template>
