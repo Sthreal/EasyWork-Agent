@@ -1,6 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 import { decide, defer } from '../api/confirmation'
+import ChartBlock from './ChartBlock.vue'
 
 defineProps({ message: { type: Object, default: null } })
 const emit = defineEmits(['pending-change'])
@@ -84,6 +85,16 @@ function taskResult(t) {
     return ''
   }
 }
+
+function stepChart(t) {
+  if (!t || !t.result) return null
+  try {
+    const r = JSON.parse(t.result)
+    return r.data && r.data.chart ? r.data.chart : null
+  } catch {
+    return null
+  }
+}
 </script>
 
 <template>
@@ -126,6 +137,9 @@ function taskResult(t) {
             <button class="btn btn-sm" @click="onReject(t)">拒绝</button>
             <button class="btn btn-sm" @click="onDefer(t)">稍后</button>
           </div>
+        </div>
+        <div v-if="stepChart(t)" class="chart-wrap">
+          <ChartBlock :chart="stepChart(t)" />
         </div>
       </li>
     </ul>
@@ -237,5 +251,9 @@ function taskResult(t) {
   margin: 0;
   font-size: 13px;
   color: var(--color-primary);
+}
+.chart-wrap {
+  width: 100%;
+  padding-left: 28px;
 }
 </style>
