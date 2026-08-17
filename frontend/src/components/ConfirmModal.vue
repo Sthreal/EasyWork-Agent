@@ -9,6 +9,18 @@ const emit = defineEmits(['confirm', 'close'])
       <h3>确认执行高危动作？</h3>
       <p class="action">{{ item.action }} {{ item.target }}</p>
       <p v-if="item.params" class="preview">📋 {{ item.params }}</p>
+      <table v-if="item.preview && item.preview.length" class="diff-table">
+        <thead>
+          <tr><th>位置</th><th>原值</th><th>新值</th></tr>
+        </thead>
+        <tbody>
+          <tr v-for="(d, i) in item.preview" :key="i">
+            <td>第{{ d.row }}行{{ d.column }}列</td>
+            <td class="old">{{ d.old }}</td>
+            <td class="new">{{ d.new }}</td>
+          </tr>
+        </tbody>
+      </table>
       <div class="btns">
         <button class="btn btn-danger" @click="emit('confirm')">确认执行</button>
         <button class="btn" @click="emit('close')">取消</button>
@@ -53,6 +65,30 @@ const emit = defineEmits(['confirm', 'close'])
   font-size: 13px;
   white-space: pre-wrap;
   word-break: break-word;
+}
+.diff-table {
+  width: 100%;
+  margin: 10px 0 4px;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.diff-table th,
+.diff-table td {
+  border: 1px solid var(--color-border);
+  padding: 6px 10px;
+  text-align: left;
+}
+.diff-table th {
+  background: var(--color-bg);
+  font-weight: 600;
+}
+.diff-table .old {
+  color: var(--color-danger);
+  text-decoration: line-through;
+}
+.diff-table .new {
+  color: var(--color-success);
+  font-weight: 600;
 }
 .btns {
   display: flex;

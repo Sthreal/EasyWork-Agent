@@ -46,6 +46,18 @@ onMounted(load)
         <span class="line"><b>{{ item.action }}</b> {{ item.target }}</span>
       </div>
       <p v-if="item.params" class="preview">📋 {{ item.params }}</p>
+      <table v-if="item.preview && item.preview.length" class="diff-table">
+        <thead>
+          <tr><th>位置</th><th>原值</th><th>新值</th></tr>
+        </thead>
+        <tbody>
+          <tr v-for="(d, i) in item.preview" :key="i">
+            <td>第{{ d.row }}行{{ d.column }}列</td>
+            <td class="old">{{ d.old }}</td>
+            <td class="new">{{ d.new }}</td>
+          </tr>
+        </tbody>
+      </table>
       <p class="meta">任务 #{{ item.task_id }} · {{ item.created_at }}</p>
       <div class="btns">
         <button class="btn btn-danger" @click="target = item">确认执行</button>
@@ -90,6 +102,30 @@ onMounted(load)
   font-size: 13px;
   white-space: pre-wrap;
   word-break: break-word;
+}
+.diff-table {
+  width: 100%;
+  margin: 10px 0 4px;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.diff-table th,
+.diff-table td {
+  border: 1px solid var(--color-border);
+  padding: 6px 10px;
+  text-align: left;
+}
+.diff-table th {
+  background: var(--color-bg);
+  font-weight: 600;
+}
+.diff-table .old {
+  color: var(--color-danger);
+  text-decoration: line-through;
+}
+.diff-table .new {
+  color: var(--color-success);
+  font-weight: 600;
 }
 .meta {
   margin: 0 0 12px;

@@ -1,11 +1,19 @@
 import { getAuthHeaders } from './auth'
 
+export interface DiffChange {
+  row: number
+  column: string | number
+  old: string
+  new: string
+}
+
 export interface ConfirmationItem {
   id: number
   task_id: string | null
   action: string
   target: string
   params: string
+  preview: DiffChange[] | null
   status: string
   created_at: string | null
   is_expired: boolean
