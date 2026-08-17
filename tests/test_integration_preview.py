@@ -67,9 +67,18 @@ def test_high_risk_sheet_task_creates_confirmation_with_preview(client, monkeypa
     assert resp.status_code == 200
     body = resp.json()
     assert body["status"] == "pending_confirm"
+    step = body["tasks"][0]
+    assert step["in_workspace"] is True
+    assert step["preview"] == [{"row": 2, "column": "B", "old": "138", "new": "1380000"}]
 
+    # 工作区确认不在待确认队列
     resp2 = client.get("/api/v1/confirmations")
-    assert resp2.status_code == 200
-    items = resp2.json()["items"]
+    assert resp2.json()["items"] == []
+
+    # 稍后 → 进入待确认队列，确认页可看到 diff 预览
+    resp3 = client.post(f"/api/v1/confirmations/{step['confirmation_id']}/defer")
+    assert resp3.status_code == 200
+    resp4 = client.get("/api/v1/confirmations")
+    items = resp4.json()["items"]
     assert len(items) == 1
     assert items[0]["preview"] == [{"row": 2, "column": "B", "old": "138", "new": "1380000"}]

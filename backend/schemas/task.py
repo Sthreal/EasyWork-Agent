@@ -19,6 +19,8 @@ class TaskItem(BaseModel):
     status: str = "pending"
     result: str = ""
     confirmation_id: int | None = None
+    in_workspace: bool | None = None
+    preview: list | None = None
 
 
 class TaskResponse(BaseModel):

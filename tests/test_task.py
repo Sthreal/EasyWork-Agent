@@ -222,11 +222,24 @@ def test_max_rounds(client, monkeypatch):
 def test_sheets_write_preview_in_confirmation(client, monkeypatch):
     import backend.tools.sheets as sheets_mod
 
+    from backend.tools.base import ToolResult
+
     monkeypatch.setattr(
         sheets_mod.SheetTool,
         "find_cell",
         lambda self, filename, key_column, key_value, field, header_row=1: {"row": 2, "column": "B", "old": "13800000000"},
     )
+
+    def fake_execute(self, action="", **kw):
+        if action == "preview":
+            return ToolResult(
+                ok=True,
+                message="ok",
+                data={"preview": [{"row": 2, "column": "B", "old": "13800000000", "new": "13866667777"}]},
+            )
+        return ToolResult(ok=True, message="ok", data={})
+
+    monkeypatch.setattr(sheets_mod.SheetTool, "execute", fake_execute)
     monkeypatch.setattr(
         task_service,
         "plan",
@@ -238,15 +251,18 @@ def test_sheets_write_preview_in_confirmation(client, monkeypatch):
             "question": None,
         },
     )
-    resp = client.post("/api/v1/tasks", json={"text": "把张三电话改为13866667777"})
+    resp = client.post("/api/v1/tasks", json={"text": "把张三的电话改成13866667777"})
     assert resp.status_code == 200
     item = resp.json()["tasks"][0]
     assert item["status"] == "pending_confirm"
     assert item["confirmation_id"] is not None
-    # 确认记录 params 应包含预览（通过待确认列表接口验证）
+    assert item["in_workspace"] is True
+    # 工作区确认：任务响应直接带 diff 预览，不用切到确认页
+    assert item["preview"] == [{"row": 2, "column": "B", "old": "13800000000", "new": "13866667777"}]
+    # 「稍后」→ 进入待确认队列，确认页可见预览文本
+    client.post(f"/api/v1/confirmations/{item['confirmation_id']}/defer")
     pending = client.get("/api/v1/confirmations").json()["items"]
-    assert any("将修改" in p["params"] and "第2行B列" in p["params"] for p in pending)
-
+    assert any("将修改" in p_["params"] and "第2行B列" in p_["params"] for p_ in pending)
 
 def test_sheets_write_locate_failure_marks_failed(client, monkeypatch):
     import backend.tools.sheets as sheets_mod

@@ -39,7 +39,7 @@ def client(engine):
 
 def test_pending_list_and_decide(engine, client):
     session = sessionmaker(bind=engine)()
-    gate.create_confirmation(session, task_id=1, action="发送邮件", target="项目组")
+    gate.create_confirmation(session, task_id=1, action="发送邮件", target="项目组", in_workspace=False)
     session.close()
 
     resp = client.get("/api/v1/confirmations")
@@ -122,6 +122,7 @@ def test_confirmation_response_includes_preview(engine, client):
         target="报名表.xlsx",
         params="将修改 报名表.xlsx：姓名=张三 的 电话，138 → 139",
         preview='[{"row": 2, "column": "B", "old": "138", "new": "139"}]',
+        in_workspace=False,
     )
     session.close()
 
@@ -145,3 +146,60 @@ def test_migration_adds_preview_column(tmp_path):
     with engine.connect() as conn:
         cols = [row[1] for row in conn.execute(text("PRAGMA table_info(confirmations)"))]
     assert "preview" in cols
+
+
+
+def test_workspace_confirm_not_in_queue_until_defer(engine, client):
+    session = sessionmaker(bind=engine)()
+    row = gate.create_confirmation(session, task_id=1, action="修改表格", target="报名表.xlsx")
+    session.close()
+
+    # 刚产生在工作区：队列为空
+    resp = client.get("/api/v1/confirmations")
+    assert resp.json()["items"] == []
+
+    # 稍后 → 进入队列
+    resp2 = client.post(f"/api/v1/confirmations/{row.id}/defer")
+    assert resp2.status_code == 200
+    assert resp2.json()["in_workspace"] is False
+    assert resp2.json()["deferred_at"] is not None
+
+    resp3 = client.get("/api/v1/confirmations")
+    items = resp3.json()["items"]
+    assert len(items) == 1
+    assert items[0]["id"] == row.id
+
+
+def test_defer_idempotent(engine, client):
+    session = sessionmaker(bind=engine)()
+    row = gate.create_confirmation(session, task_id=1, action="修改表格", target="报名表.xlsx")
+    session.close()
+
+    r1 = client.post(f"/api/v1/confirmations/{row.id}/defer")
+    r2 = client.post(f"/api/v1/confirmations/{row.id}/defer")
+    assert r1.status_code == 200 and r2.status_code == 200
+    assert r2.json()["in_workspace"] is False
+
+
+def test_defer_not_found(client):
+    resp = client.post("/api/v1/confirmations/999/defer")
+    assert resp.status_code == 404
+
+
+def test_expired_workspace_auto_moves_to_queue(engine, client):
+    from datetime import datetime, timedelta
+
+    session = sessionmaker(bind=engine)()
+    row = gate.create_confirmation(session, task_id=1, action="修改表格", target="报名表.xlsx")
+    row_id = row.id
+    row.created_at = datetime.utcnow() - timedelta(minutes=6)
+    session.commit()
+    session.close()
+
+    # 查询队列时惰性迁移：工作区超 5 分钟未操作 → 自动进队列
+    resp = client.get("/api/v1/confirmations")
+    items = resp.json()["items"]
+    assert len(items) == 1
+    assert items[0]["id"] == row_id
+    assert items[0]["in_workspace"] is False
+    assert items[0]["deferred_at"] is not None

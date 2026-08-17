@@ -6,16 +6,29 @@ from sqlalchemy import text
 logger = logging.getLogger(__name__)
 
 
-def ensure_confirmations_preview(engine) -> None:
-    """confirmations 表缺 preview 列时补上（SQLite，幂等）。"""
+_NEW_COLUMNS = (
+    ("preview", "TEXT DEFAULT ''"),
+    ("in_workspace", "BOOLEAN DEFAULT 1"),
+    ("deferred_at", "DATETIME"),
+)
+
+
+def ensure_confirmations_columns(engine) -> None:
+    """confirmations 表补齐新增列（SQLite，幂等；缺啥补啥，不破坏现有数据）。"""
     try:
         if not str(engine.url).startswith("sqlite"):
             return
         with engine.connect() as conn:
             cols = [row[1] for row in conn.execute(text("PRAGMA table_info(confirmations)"))]
-            if "preview" not in cols:
-                conn.execute(text("ALTER TABLE confirmations ADD COLUMN preview TEXT DEFAULT ''"))
-                conn.commit()
-                logger.info("迁移：confirmations 表新增 preview 列")
+            for name, ddl in _NEW_COLUMNS:
+                if name not in cols:
+                    conn.execute(text(f"ALTER TABLE confirmations ADD COLUMN {name} {ddl}"))
+                    logger.info("迁移：confirmations 表新增 %s 列", name)
+            conn.commit()
     except Exception:  # noqa: BLE001
-        logger.warning("confirmations.preview 迁移跳过（不影响启动）", exc_info=True)
+        logger.warning("confirmations 迁移跳过（不影响启动）", exc_info=True)
+
+
+def ensure_confirmations_preview(engine) -> None:
+    """兼容旧调用：补齐 confirmations 全部新增列（含 preview）。"""
+    ensure_confirmations_columns(engine)

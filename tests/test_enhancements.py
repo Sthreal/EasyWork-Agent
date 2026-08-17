@@ -132,9 +132,9 @@ def test_list_filters_and_pagination(env):
 def test_confirmation_is_expired(env):
     client, testing_session = env
     s = testing_session()
-    old = create_confirmation(s, task_id=None, action="发送邮件", target="旧", task_item_id=None)
+    old = create_confirmation(s, task_id=None, action="发送邮件", target="旧", task_item_id=None, in_workspace=False)
     old.created_at = datetime.utcnow() - timedelta(minutes=31)
-    new = create_confirmation(s, task_id=None, action="发送邮件", target="新", task_item_id=None)
+    new = create_confirmation(s, task_id=None, action="发送邮件", target="新", task_item_id=None, in_workspace=False)
     s.commit()
     old_id, new_id = old.id, new.id
     s.close()
@@ -143,7 +143,6 @@ def test_confirmation_is_expired(env):
     by_id = {i["id"]: i for i in items}
     assert by_id[old_id]["is_expired"] is True
     assert by_id[new_id]["is_expired"] is False
-
 
 def test_decide_reject_marks_rejected(env, monkeypatch):
     client, testing_session = env

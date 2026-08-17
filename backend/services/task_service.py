@@ -88,7 +88,7 @@ def create_task(payload: TaskCreate, db: Session, effective_user_id: int | None 
                     )
                     row.status = "pending_confirm"
                     row.result = json.dumps({"ok": False, "message": ("等待确认：" + preview_text) if preview_text else "等待确认"}, ensure_ascii=False)
-                    items_out.append(_item_schema(row, conf.id if conf else None))
+                    items_out.append(_item_schema(row, _confirmation_info(db, row.id)))
             else:
                 exec_result = execute_item(row.id, db=db)
                 if exec_result:
@@ -149,7 +149,7 @@ def list_tasks(
                 status=t.status,
                 question=t.question,
                 created_at=t.created_at.isoformat() if t.created_at else None,
-                tasks=[_item_schema(i, _confirmation_id(db, i.id)) for i in t.items],
+                tasks=[_item_schema(i, _confirmation_info(db, i.id)) for i in t.items],
             )
             for t in tasks
         ],
@@ -205,20 +205,31 @@ def _task_response(db: Session, task: Task) -> TaskResponse:
         status=task.status,
         text=task.text,
         question=task.question,
-        tasks=[_item_schema(i, _confirmation_id(db, i.id)) for i in task.items],
+        tasks=[_item_schema(i, _confirmation_info(db, i.id)) for i in task.items],
     )
 
 
-def _confirmation_id(db: Session, item_id: int) -> int | None:
+def _confirmation_info(db: Session, item_id: int) -> dict | None:
+    """取子任务对应的待处理确认信息（id/in_workspace/preview）；无则 None。"""
     conf = (
         db.query(Confirmation)
         .filter(Confirmation.task_item_id == item_id, Confirmation.status == "pending")
         .first()
     )
-    return conf.id if conf else None
+    if conf is None:
+        return None
+    try:
+        preview = json.loads(conf.preview) if conf.preview else None
+    except json.JSONDecodeError:
+        preview = None
+    return {
+        "confirmation_id": conf.id,
+        "in_workspace": bool(conf.in_workspace),
+        "preview": preview if isinstance(preview, list) else None,
+    }
 
 
-def _item_schema(row: TaskItem, confirmation_id: int | None = None, exec_result: dict | None = None) -> TaskItemSchema:
+def _item_schema(row: TaskItem, conf_info: dict | None = None, exec_result: dict | None = None) -> TaskItemSchema:
     try:
         args = json.loads(row.args or "{}")
     except json.JSONDecodeError:
@@ -232,5 +243,7 @@ def _item_schema(row: TaskItem, confirmation_id: int | None = None, exec_result:
         args=args,
         status=row.status,
         result=row.result,
-        confirmation_id=confirmation_id,
+        confirmation_id=conf_info["confirmation_id"] if conf_info else None,
+        in_workspace=conf_info["in_workspace"] if conf_info else None,
+        preview=conf_info["preview"] if conf_info else None,
     )
