@@ -8,6 +8,7 @@ class ConfirmationResponse(BaseModel):
     action: str
     target: str
     params: str
+    preview: list | None = None
     status: str
     created_at: str | None = None
     execution_result: dict | None = None

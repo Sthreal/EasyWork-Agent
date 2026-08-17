@@ -111,3 +111,37 @@ def test_decide_cross_user_forbidden(engine, client):
     r_owner = client.post(f"/api/v1/confirmations/{conf.id}/decide", json={"approve": True, "user_id": 7})
     assert r_owner.status_code == 200
     assert r_owner.json()["status"] == "approved"
+
+
+def test_confirmation_response_includes_preview(engine, client):
+    session = sessionmaker(bind=engine)()
+    gate.create_confirmation(
+        session,
+        task_id=1,
+        action="修改表格",
+        target="报名表.xlsx",
+        params="将修改 报名表.xlsx：姓名=张三 的 电话，138 → 139",
+        preview='[{"row": 2, "column": "B", "old": "138", "new": "139"}]',
+    )
+    session.close()
+
+    resp = client.get("/api/v1/confirmations")
+    assert resp.status_code == 200
+    item = resp.json()["items"][0]
+    assert item["preview"] == [{"row": 2, "column": "B", "old": "138", "new": "139"}]
+    assert "138 → 139" in item["params"]
+
+
+def test_migration_adds_preview_column(tmp_path):
+    from sqlalchemy import create_engine, text
+
+    from backend.db_migrate import ensure_confirmations_preview
+
+    db_file = tmp_path / "old.db"
+    engine = create_engine(f"sqlite:///{db_file}")
+    with engine.begin() as conn:
+        conn.execute(text("CREATE TABLE confirmations (id INTEGER PRIMARY KEY, params TEXT)"))
+    ensure_confirmations_preview(engine)
+    with engine.connect() as conn:
+        cols = [row[1] for row in conn.execute(text("PRAGMA table_info(confirmations)"))]
+    assert "preview" in cols

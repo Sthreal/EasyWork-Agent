@@ -6,6 +6,8 @@ import time
 
 import traceback
 
+from contextlib import asynccontextmanager
+
 
 
 from fastapi import FastAPI, Request
@@ -34,7 +36,17 @@ setup_logging()
 
 
 
-app = FastAPI(title=settings.app_name, debug=settings.debug)
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    """启动时执行轻量幂等迁移（补齐新增列，不破坏现有数据）。"""
+    from backend.db import engine
+    from backend.db_migrate import ensure_confirmations_preview
+
+    ensure_confirmations_preview(engine)
+    yield
+
+
+app = FastAPI(title=settings.app_name, debug=settings.debug, lifespan=lifespan)
 
 
 

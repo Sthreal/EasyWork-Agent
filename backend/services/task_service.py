@@ -71,7 +71,7 @@ def create_task(payload: TaskCreate, db: Session, effective_user_id: int | None 
             row = save_item(db, task.id, item)
             db.flush()
             if item.get("high_risk") and item.get("tool"):
-                preview_text, preview_error = _sheets_preview(item)
+                preview_text, preview_diffs, preview_error = _sheets_preview(item)
                 if preview_error:
                     row.status = "failed"
                     row.result = json.dumps({"ok": False, "message": preview_error}, ensure_ascii=False)
@@ -84,6 +84,7 @@ def create_task(payload: TaskCreate, db: Session, effective_user_id: int | None 
                         action=item["action"],
                         target=item["target"],
                         params=preview_text or item["params"],
+                        preview=json.dumps(preview_diffs, ensure_ascii=False) if preview_diffs is not None else "",
                     )
                     row.status = "pending_confirm"
                     row.result = json.dumps({"ok": False, "message": ("等待确认：" + preview_text) if preview_text else "等待确认"}, ensure_ascii=False)
@@ -155,28 +156,38 @@ def list_tasks(
     )
 
 
-def _sheets_preview(item: dict) -> tuple[str, str | None]:
-    """改表格高危动作：先读表定位，生成人话预览。返回 (预览文本, 错误)。"""
+def _sheets_preview(item: dict) -> tuple[str, list | None, str | None]:
+    """改表格高危动作：先定位/预览，生成人话文本 + 结构化 diff。返回 (预览文本, diff列表或None, 错误)。"""
     args = item.get("args") or {}
-    if item.get("tool") != "sheets" or args.get("action") != "write_by_key":
-        return item.get("params", ""), None
+    if item.get("tool") != "sheets" or args.get("action") not in ("write_by_key", "write"):
+        return item.get("params", ""), None, None
     try:
         from backend.tools.sheets import SheetTool
 
-        target = SheetTool().find_cell(
-            filename=args["filename"],
-            key_column=args.get("key_column", "姓名"),
-            key_value=args.get("key_value", ""),
-            field=args.get("field", ""),
-        )
-        preview = (
-            f"将修改 {args['filename']}：{args.get('key_column')}={args.get('key_value')} 的 "
-            f"{args.get('field')}（第{target['row']}行{target['column']}列），"
-            f"{target['old']} → {args.get('value')}"
-        )
-        return preview, None
+        tool = SheetTool()
+        if args.get("action") == "write_by_key":
+            target = tool.find_cell(
+                filename=args["filename"],
+                key_column=args.get("key_column", "姓名"),
+                key_value=args.get("key_value", ""),
+                field=args.get("field", ""),
+            )
+            changes = [{"row": target["row"], "column": target["column"], "value": args.get("value", "")}]
+            key_desc = f"（{args.get('key_column')}={args.get('key_value')} 的 {args.get('field')}）"
+        else:
+            changes = list(args.get("changes") or [])
+            key_desc = ""
+        if not changes:
+            return args.get("params", ""), [], None
+        r = tool.execute(action="preview", filename=args["filename"], changes=changes)
+        if not r.ok:
+            return "", None, r.message
+        diffs = r.data.get("preview") or []
+        lines = [f"第{d.get('row')}行{d.get('column')}列：{d.get('old', '')} → {d.get('new', '')}" for d in diffs]
+        text = f"将修改 {args['filename']}{key_desc}：" + "；".join(lines)
+        return text, diffs, None
     except Exception as exc:  # noqa: BLE001
-        return "", str(exc)
+        return "", None, str(exc)
 
 
 def _find_recent_duplicate(db: Session, text: str, user_id: int | None = None) -> Task | None:

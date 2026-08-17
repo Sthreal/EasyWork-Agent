@@ -78,6 +78,17 @@ def decide(
     return _to_response(row, execution_result)
 
 
+def _parse_preview(raw: str) -> list | None:
+    """解析确认记录里的结构化 diff（JSON 字符串 → 列表）；空/坏数据返回 None。"""
+    if not raw:
+        return None
+    try:
+        data = json.loads(raw)
+        return data if isinstance(data, list) else None
+    except (json.JSONDecodeError, TypeError):
+        return None
+
+
 def _to_response(row: Confirmation, execution_result: dict | None = None, is_expired: bool = False) -> ConfirmationResponse:
     return ConfirmationResponse(
         id=row.id,
@@ -85,6 +96,7 @@ def _to_response(row: Confirmation, execution_result: dict | None = None, is_exp
         action=row.action,
         target=row.target,
         params=row.params,
+        preview=_parse_preview(row.preview),
         status=row.status,
         created_at=row.created_at.isoformat() if row.created_at else None,
         execution_result=execution_result,

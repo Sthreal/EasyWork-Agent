@@ -15,9 +15,10 @@ def create_confirmation(
     action: str,
     target: str = "",
     params: str = "",
+    preview: str = "",
     task_item_id: int | None = None,
 ) -> Confirmation | None:
-    """高危动作创建确认记录；非高危直接返回 None。"""
+    """高危动作创建确认记录；非高危直接返回 None。preview 为结构化 diff 的 JSON 字符串。"""
     if not is_high_risk(action, target, params):
         return None
     row = Confirmation(
@@ -26,6 +27,7 @@ def create_confirmation(
         action=action,
         target=target,
         params=params,
+        preview=preview,
         status="pending",
     )
     db.add(row)
