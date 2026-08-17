@@ -321,3 +321,37 @@ def test_dedup_scoped_by_user(client, monkeypatch):
     r3 = client.post("/api/v1/tasks", json={"text": "读取报名表内容", "user_id": 8})
     assert r3.json()["task_id"] != r1.json()["task_id"]
     assert calls["n"] == 2
+
+
+def test_aggregate_task_returns_chart(client, monkeypatch, tmp_path):
+    import json
+
+    import backend.tools.sheets as sheets_mod
+    import backend.services.task_service as ts
+
+    csv_path = tmp_path / "报名表.csv"
+    csv_path.write_text("专业\n计算机\n计算机\n数学\n", encoding="utf-8")
+    monkeypatch.setattr(sheets_mod, "DATA_DIR", tmp_path)
+
+    monkeypatch.setattr(
+        ts,
+        "plan",
+        lambda text: {
+            "tasks": [
+                {"action": "统计专业人数", "target": "报名表.csv", "params": "", "high_risk": False, "tool": "sheets",
+                 "args": {"action": "aggregate", "filename": "报名表.csv", "group_by": "专业", "agg": "count"}}
+            ],
+            "question": None,
+        },
+    )
+    monkeypatch.setattr(ts, "should_continue", lambda *a, **k: {"done": True, "tasks": []})
+
+    resp = client.post("/api/v1/tasks", json={"text": "统计报名表各专业人数"})
+    assert resp.status_code == 200
+    step = resp.json()["tasks"][0]
+    assert step["status"] == "executed"
+    result = json.loads(step["result"])
+    chart = result["data"]["chart"]
+    assert chart["chart_type"] == "bar"
+    assert chart["y_label"] == "人数"
+    assert chart["data"] == [{"label": "计算机", "value": 2}, {"label": "数学", "value": 1}]

@@ -4,7 +4,7 @@ from backend.tools.registry import available_tools
 # 每类工具的强信号关键词（宁缺毋滥：命中少、误伤低；无命中回退全部工具）
 _TOOL_KEYWORDS: dict[str, tuple[str, ...]] = {
     "email": ("邮件", "发信", "发邮件", "收件", "邮箱", "抄送", "附件", "mail", "email"),
-    "sheets": ("表格", "报名表", "名单", "excel", "csv", "单元格", "表头", "工作表"),
+    "sheets": ("表格", "报名表", "名单", "excel", "csv", "单元格", "表头", "工作表", "统计", "分布", "人数", "合计", "汇总", "图表", "占比"),
     "calendar": ("会议", "日程", "日历", "预约", "参会", "空闲", "calendar"),
 }
 

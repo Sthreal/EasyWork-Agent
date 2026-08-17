@@ -114,3 +114,40 @@ def test_find_cell_missing_header(tmp_sheets):
     result = tool.execute(action="write_by_key", filename="报名表.xlsx", key_column="姓名", key_value="张三", field="邮箱", value="x@y.com")
     assert result.ok is False
     assert "找不到表头" in result.message
+
+
+
+def test_aggregate_count_by_column(tmp_sheets):
+    tool = sheets_tool.SheetTool()
+    result = tool.execute(action="aggregate", filename="报名表.xlsx", group_by="姓名", agg="count")
+    assert result.ok is True
+    chart = result.data["chart"]
+    assert chart["chart_type"] == "bar"
+    assert chart["y_label"] == "人数"
+    assert len(chart["data"]) == 2
+    assert any(d["label"] == "张三" and d["value"] == 1 for d in chart["data"])
+
+
+def test_aggregate_sum_by_column(tmp_sheets):
+    import csv
+
+    p = tmp_sheets / "订单.csv"
+    with open(p, "w", encoding="utf-8", newline="") as f:
+        csv.writer(f).writerows([["部门", "金额"], ["A", "100"], ["A", "50"], ["B", "30"]])
+    tool = sheets_tool.SheetTool()
+    result = tool.execute(
+        action="aggregate", filename="订单.csv", group_by="部门", agg="sum", value_column="金额"
+    )
+    assert result.ok is True
+    chart = result.data["chart"]
+    assert chart["y_label"] == "金额 合计"
+    by = {d["label"]: d["value"] for d in chart["data"]}
+    assert by["A"] == 150
+    assert by["B"] == 30
+
+
+def test_aggregate_missing_group_column(tmp_sheets):
+    tool = sheets_tool.SheetTool()
+    result = tool.execute(action="aggregate", filename="报名表.xlsx", group_by="不存在", agg="count")
+    assert result.ok is False
+    assert "找不到表头" in result.message

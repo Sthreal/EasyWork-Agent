@@ -7,7 +7,7 @@
 3. 格式二（信息不足，需要反问）：{"tasks":[],"question":"需要向用户确认的最关键的一个问题"}
 4. 工具参数说明：
    - email（发送邮件高危）：{"action":"send","to":"收件人邮箱","subject":"主题","body":"正文"}；读取邮件：{"action":"read"}
-   - sheets（修改表格高危）：{"action":"write_by_key","filename":"文件名.xlsx","key_column":"定位列表头如姓名","key_value":"定位值如张三","field":"要修改的列表头如电话","value":"新值"}；读取：{"action":"read","filename":"文件名.xlsx"}
+   - sheets（修改表格高危）：{"action":"write_by_key","filename":"文件名.xlsx","key_column":"定位列表头如姓名","key_value":"定位值如张三","field":"要修改的列表头如电话","value":"新值"}；读取：{"action":"read","filename":"文件名.xlsx"}；统计（只读不高危，用于出图）：{"action":"aggregate","filename":"文件名.xlsx","group_by":"分组的表头如专业","agg":"count或sum","value_column":"agg为sum时要合计的表头如金额"}
    - calendar（创建日程）：{"action":"create","summary":"主题","start_ts":"2026-08-14T15:00","end_ts":"2026-08-14T16:00"}；修改日程：{"action":"update","event_id":"日程ID","summary":"新主题"}
 5. 修改表格必须用 write_by_key：按表头（如"姓名"）和值（如"张三"）定位行，按表头（如"电话"）定位列，不要输出行列号。
 6. 每个子任务只包含一个独立操作；用户提到几个操作就拆几个，禁止合并、禁止遗漏。

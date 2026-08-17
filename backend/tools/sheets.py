@@ -19,12 +19,13 @@ class SheetTool(BaseTool):
     args_schema = {
         "type": "object",
         "required": ["action"],
-        "properties": {"action": {"type": "string", "enum": ["read", "write", "write_by_key", "preview"]}},
+        "properties": {"action": {"type": "string", "enum": ["read", "write", "write_by_key", "preview", "aggregate"]}},
         "oneOf": [
             {"properties": {"action": {"const": "read"}, "filename": {"type": "string"}, "limit": {"type": "integer"}}, "required": ["action", "filename"]},
             {"properties": {"action": {"const": "write_by_key"}, "filename": {"type": "string"}, "key_column": {"type": "string"}, "key_value": {"type": "string"}, "field": {"type": "string"}, "value": {"type": "string"}}, "required": ["action", "filename", "key_column", "key_value", "field", "value"]},
             {"properties": {"action": {"const": "write"}, "filename": {"type": "string"}, "changes": {"type": "array"}}, "required": ["action", "filename", "changes"]},
             {"properties": {"action": {"const": "preview"}, "filename": {"type": "string"}, "changes": {"type": "array"}}, "required": ["action", "filename", "changes"]},
+            {"properties": {"action": {"const": "aggregate"}, "filename": {"type": "string"}, "group_by": {"type": "string"}, "agg": {"type": "string", "enum": ["count", "sum"]}, "value_column": {"type": "string"}}, "required": ["action", "filename", "group_by", "agg"]},
         ],
     }  # 写操作由高危关键词判定（更新/写入=高危）
 
@@ -34,6 +35,13 @@ class SheetTool(BaseTool):
                 return self.read(filename=kwargs.get("filename", ""), limit=int(kwargs.get("limit", 10)))
             if action == "preview":
                 return self.preview(filename=kwargs.get("filename", ""), changes=kwargs.get("changes", []))
+            if action == "aggregate":
+                return self.aggregate(
+                    filename=kwargs.get("filename", ""),
+                    group_by=kwargs.get("group_by", ""),
+                    agg=kwargs.get("agg", "count"),
+                    value_column=kwargs.get("value_column", ""),
+                )
             if action == "write":
                 return self.write(filename=kwargs.get("filename", ""), changes=kwargs.get("changes", []))
             if action == "write_by_key":
@@ -96,6 +104,52 @@ class SheetTool(BaseTool):
             old = _cell_value(rows, c.get("row"), c.get("column"))
             preview.append({"row": c.get("row"), "column": c.get("column"), "old": old, "new": c.get("value", "")})
         return ToolResult(ok=True, message=f"生成 {len(preview)} 处变更预览", data={"preview": preview})
+
+    def aggregate(self, filename: str, group_by: str, agg: str = "count", value_column: str = "") -> ToolResult:
+        """按某列表头分组统计：count 计数 / sum 对 value_column 求和，返回图表数据（只读不高危）。"""
+        path = self._resolve(filename)
+        if not path.exists():
+            return ToolResult(ok=False, message=f"文件不存在：{filename}")
+        rows = _read_rows(path, 2000)
+        if not rows:
+            return ToolResult(ok=False, message="表格为空")
+        header = [str(h) if h is not None else "" for h in rows[0]]
+        group_col = _header_index(header, group_by)
+        if group_col is None:
+            return ToolResult(ok=False, message=f"找不到表头：{group_by}")
+        value_col = None
+        if agg == "sum":
+            value_col = _header_index(header, value_column)
+            if value_col is None:
+                return ToolResult(ok=False, message=f"找不到表头：{value_column}")
+        stats: dict[str, float] = {}
+        for row in rows[1:]:
+            label = str(row[group_col - 1]).strip() if len(row) >= group_col else ""
+            if not label or label == "None":
+                continue
+            if agg == "sum":
+                try:
+                    v = float(row[value_col - 1]) if len(row) >= value_col and row[value_col - 1] is not None else 0.0
+                except (TypeError, ValueError):
+                    v = 0.0
+                stats[label] = stats.get(label, 0.0) + v
+            else:
+                stats[label] = stats.get(label, 0.0) + 1
+        data = [{"label": k, "value": int(v) if agg == "count" else round(v, 2)} for k, v in stats.items()]
+        data.sort(key=lambda x: x["value"], reverse=True)
+        return ToolResult(
+            ok=True,
+            message=f"按 {group_by} 统计完成，共 {len(data)} 组",
+            data={
+                "chart": {
+                    "chart_type": "bar",
+                    "title": f"{filename} 按 {group_by} 统计",
+                    "x_label": group_by,
+                    "y_label": "人数" if agg == "count" else f"{value_column} 合计",
+                    "data": data,
+                }
+            },
+        )
 
     def write(self, filename: str, changes: list) -> ToolResult:
         path = self._resolve(filename)

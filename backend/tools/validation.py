@@ -29,6 +29,14 @@ def _validate_sheets(args: dict) -> tuple[bool, str]:
         filename = args.get("filename")
         if not isinstance(filename, str) or not filename.strip():
             return False, "文件名不能为空"
+    if action == "aggregate":
+        if not isinstance(args.get("filename"), str) or not args["filename"].strip():
+            return False, "文件名不能为空"
+        if not isinstance(args.get("group_by"), str) or not args["group_by"].strip():
+            return False, "group_by 不能为空"
+        if args.get("agg", "count") not in ("count", "sum"):
+            return False, "agg 只能是 count 或 sum"
+        return True, ""
     if action == "write_by_key":
         for k in ("key_column", "key_value", "field", "value"):
             if not isinstance(args.get(k), str) or not args[k].strip():

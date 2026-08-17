@@ -11,7 +11,7 @@ from backend.tools.validation import validate_args, validate_args_by_schema
 
 REQUIRED_ARGS = {
     "email": {"send": ["to", "subject"], "read": []},
-    "sheets": {"write": ["filename", "changes"], "read": ["filename"], "write_by_key": ["filename", "key_column", "key_value", "field", "value"]},
+    "sheets": {"write": ["filename", "changes"], "read": ["filename"], "write_by_key": ["filename", "key_column", "key_value", "field", "value"], "aggregate": ["filename", "group_by", "agg"]},
     "calendar": {"create": ["summary", "start_ts", "end_ts"], "update": ["event_id", "summary"]},
 }
 

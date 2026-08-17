@@ -97,3 +97,19 @@ def test_schema_accepts_valid():
     schema = {"type": "object", "required": ["action"], "properties": {"action": {"type": "string"}}}
     ok, msg = validate_args_by_schema({"action": "read"}, schema)
     assert ok is True
+
+
+
+def test_sheets_aggregate_good():
+    ok, msg = validate_args(
+        "sheets", {"action": "aggregate", "filename": "a.csv", "group_by": "专业", "agg": "count"}
+    )
+    assert ok is True
+
+
+def test_sheets_aggregate_bad_agg():
+    ok, msg = validate_args(
+        "sheets", {"action": "aggregate", "filename": "a.csv", "group_by": "专业", "agg": "avg"}
+    )
+    assert ok is False
+    assert "agg" in msg
