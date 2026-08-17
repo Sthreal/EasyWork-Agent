@@ -355,3 +355,41 @@ def test_aggregate_task_returns_chart(client, monkeypatch, tmp_path):
     assert chart["chart_type"] == "bar"
     assert chart["y_label"] == "人数"
     assert chart["data"] == [{"label": "计算机", "value": 2}, {"label": "数学", "value": 1}]
+
+
+def test_get_task_latest_status(client, monkeypatch):
+    import backend.services.task_service as ts
+
+    monkeypatch.setattr(
+        ts,
+        "plan",
+        lambda text: {
+            "tasks": [
+                {"action": "修改表格", "target": "报名表", "params": "", "high_risk": True, "tool": "sheets",
+                 "args": {"action": "write_by_key", "filename": "报名表.xlsx", "key_column": "姓名", "key_value": "张三", "field": "电话", "value": "138"}}
+            ],
+            "question": None,
+        },
+    )
+    monkeypatch.setattr(ts, "should_continue", lambda *a, **k: {"done": True, "tasks": []})
+
+    created = client.post("/api/v1/tasks", json={"text": "改张三电话"}).json()
+    tid = int(created["task_id"])
+    cid = created["tasks"][0]["confirmation_id"]
+
+    # 刷新快照仍是 pending_confirm + confirmation_id
+    snap = client.get(f"/api/v1/tasks/{tid}").json()
+    assert snap["status"] == "pending_confirm"
+    assert snap["tasks"][0]["confirmation_id"] == cid
+
+    # 拒绝后，快照应显示最新状态（不再带待确认按钮所需信息）
+    client.post(f"/api/v1/confirmations/{cid}/decide", json={"approve": False})
+    latest = client.get(f"/api/v1/tasks/{tid}").json()
+    assert latest["status"] == "rejected"
+    assert latest["tasks"][0]["status"] == "rejected"
+    assert latest["tasks"][0]["confirmation_id"] is None
+
+
+def test_get_task_not_found(client):
+    resp = client.get("/api/v1/tasks/99999")
+    assert resp.status_code == 404

@@ -3,6 +3,7 @@ import { ref, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import ResultCard from './ResultCard.vue'
 import { createTask } from '../api/task'
 import { saveMessage, listMessages } from '../api/chat'
+import { getTask } from '../api/task'
 
 const props = defineProps({ user: { type: Object, default: null } })
 const emit = defineEmits(['pending-change'])
@@ -23,9 +24,17 @@ async function scrollBottom() {
 
 async function loadHistory() {
   const hist = await listMessages(props.user?.user_id)
-  messages.value = hist.map((m) =>
-    m.role === 'agent' ? { role: 'agent', ...(m.payload || {}) } : { role: 'user', text: m.text }
+  // 恢复历史时实时刷新每条 agent 消息的任务状态，避免陈旧快照（如已确认的还能再点）
+  const items = await Promise.all(
+    hist.map(async (m) => {
+      if (m.role === 'agent' && m.payload && m.payload.task_id) {
+        const latest = await getTask(m.payload.task_id)
+        if (latest) return { role: 'agent', ...latest }
+      }
+      return m.role === 'agent' ? { role: 'agent', ...(m.payload || {}) } : { role: 'user', text: m.text }
+    })
   )
+  messages.value = items
   scrollBottom()
 }
 

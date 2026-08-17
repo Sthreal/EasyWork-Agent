@@ -67,6 +67,16 @@ export async function createTask(text: string, round = 1, userId?: number, force
   }
 }
 
+export async function getTask(taskId: string | number): Promise<TaskResult | null> {
+  try {
+    const resp = await fetch(`/api/v1/tasks/${taskId}`, { headers: getAuthHeaders() })
+    if (!resp.ok) return null
+    return resp.json()
+  } catch {
+    return null
+  }
+}
+
 export async function listTasks(params: TaskListParams = {}): Promise<TaskListResult> {
   const qs = new URLSearchParams()
   if (params.userId != null) qs.set('user_id', String(params.userId))
