@@ -1,14 +1,10 @@
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted } from 'vue'
 import LoginPage from './pages/LoginPage.vue'
 import WorkbenchPage from './pages/WorkbenchPage.vue'
-import ChatPage from './pages/ChatPage.vue'
-import ConfirmationPage from './pages/ConfirmationPage.vue'
-import HistoryPage from './pages/HistoryPage.vue'
-import SettingsPage from './pages/SettingsPage.vue'
 import AppLayout from './components/AppLayout.vue'
-import ChatDock from './components/ChatDock.vue'
 import UserPanel from './components/UserPanel.vue'
+import ChatDock from './components/ChatDock.vue'
 import { listPending } from './api/confirmation'
 import { getStoredUser, clearStoredUser, saveStoredUser } from './api/auth'
 
@@ -23,9 +19,8 @@ if (userParam) {
 }
 
 const user = ref(getStoredUser())
-const view = ref('workbench')
-const pendingCount = ref(0)
 const userPanelOpen = ref(false)
+const pendingCount = ref(0)
 
 async function refreshPending() {
   try {
@@ -37,7 +32,6 @@ async function refreshPending() {
 }
 
 onMounted(refreshPending)
-watch(view, refreshPending)
 
 function logout() {
   clearStoredUser()
@@ -49,25 +43,12 @@ function logout() {
   <LoginPage v-if="!user" />
   <AppLayout
     v-else
-    :view="view"
     :user="user"
     :pending-count="pendingCount"
-    @navigate="view = $event"
     @logout="logout"
     @open-user="userPanelOpen = true"
   >
-    <WorkbenchPage v-if="view === 'workbench'" @pending-change="refreshPending" />
-    <ChatPage
-      v-else-if="view === 'chat'"
-      :user="user"
-      @logout="logout"
-      @openConfirm="view = 'confirm'"
-      @openHistory="view = 'history'"
-      @openSettings="view = 'settings'"
-    />
-    <ConfirmationPage v-else-if="view === 'confirm'" @back="view = 'chat'" />
-    <HistoryPage v-else-if="view === 'history'" :user="user" @back="view = 'chat'" />
-    <SettingsPage v-else-if="view === 'settings'" :user="user" @back="view = 'chat'" />
+    <WorkbenchPage @pending-change="refreshPending" />
   </AppLayout>
   <UserPanel
     v-if="userPanelOpen && user"
