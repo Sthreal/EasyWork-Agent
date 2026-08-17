@@ -58,13 +58,15 @@ def execute_item(item_id: int, db=None) -> dict:
 
 
 def _run(item: TaskItem, db=None) -> dict:
-    tool = get_tool(item.tool)
-    if tool is None:
-        return {"ok": False, "message": f"无法识别工具：{item.tool or '未指定'}"}
     try:
         args = json.loads(item.args or "{}")
     except json.JSONDecodeError:
         return {"ok": False, "message": "工具参数格式错误"}
+    if item.tool.startswith("mcp_"):
+        return _run_mcp(item, args, db)
+    tool = get_tool(item.tool)
+    if tool is None:
+        return {"ok": False, "message": f"无法识别工具：{item.tool or '未指定'}"}
     action = args.get("action", "")
     if not is_allowed(item.tool, action):
         return {"ok": False, "message": f"操作不在白名单：{item.tool}.{action}"}
@@ -87,6 +89,19 @@ def _run(item: TaskItem, db=None) -> dict:
     result = tool.execute(**args)
     after = _sheet_snapshot(args.get("filename", "")) if before is not None else None
     _audit_tool(item, args, result, before, after, db)
+    return {"ok": result.ok, "message": result.message, "data": result.data}
+
+
+def _run_mcp(item: TaskItem, args: dict, db=None) -> dict:
+    """执行外部 MCP 工具（惰性注册后即授权；演示数据源默认只读低危）。"""
+    from backend.mcp.client import ensure_mcp_tools
+
+    ensure_mcp_tools()
+    tool = get_tool(item.tool)
+    if tool is None:
+        return {"ok": False, "message": f"MCP 工具不可用：{item.tool}"}
+    result = tool.execute(**args)
+    _audit_tool(item, args, result, None, None, db)
     return {"ok": result.ok, "message": result.message, "data": result.data}
 
 
