@@ -14,6 +14,8 @@ export interface ConfirmationItem {
   target: string
   params: string
   preview: DiffChange[] | null
+  in_workspace: boolean
+  deferred_at: string | null
   status: string
   created_at: string | null
   is_expired: boolean
@@ -33,4 +35,12 @@ export async function decide(id: number, approve: boolean): Promise<void> {
     body: JSON.stringify({ approve }),
   })
   if (!resp.ok) throw new Error(`确认操作失败：${resp.status}`)
+}
+
+export async function defer(id: number): Promise<void> {
+  const resp = await fetch(`/api/v1/confirmations/${id}/defer`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+  })
+  if (!resp.ok) throw new Error(`稍后处理失败：${resp.status}`)
 }

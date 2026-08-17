@@ -1,4 +1,5 @@
 import { getAuthHeaders } from './auth'
+import type { DiffChange } from './confirmation'
 
 export interface TaskItem {
   action: string
@@ -10,6 +11,8 @@ export interface TaskItem {
   status: string
   result: string
   confirmation_id: number | null
+  in_workspace: boolean | null
+  preview: DiffChange[] | null
 }
 
 export interface TaskResult {

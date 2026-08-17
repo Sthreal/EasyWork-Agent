@@ -1,5 +1,42 @@
 <script setup>
+import { ref } from 'vue'
+import { decide, defer } from '../api/confirmation'
+
 defineProps({ message: { type: Object, default: null } })
+const emit = defineEmits(['pending-change'])
+
+// confirmation_id -> approved | rejected | deferred（本次会话内的操作结果）
+const acted = ref({})
+
+function needsInline(t) {
+  return t && t.high_risk && t.confirmation_id != null && t.in_workspace === true && t.status === 'pending_confirm'
+}
+
+function actText(t) {
+  const st = acted.value[t.confirmation_id]
+  if (st === 'approved') return '✅ 已确认执行'
+  if (st === 'rejected') return '🚫 已拒绝'
+  if (st === 'deferred') return '📥 已转待确认，可到待确认页处理'
+  return ''
+}
+
+async function onApprove(t) {
+  await decide(t.confirmation_id, true)
+  acted.value[t.confirmation_id] = 'approved'
+  emit('pending-change')
+}
+
+async function onReject(t) {
+  await decide(t.confirmation_id, false)
+  acted.value[t.confirmation_id] = 'rejected'
+  emit('pending-change')
+}
+
+async function onDefer(t) {
+  await defer(t.confirmation_id)
+  acted.value[t.confirmation_id] = 'deferred'
+  emit('pending-change')
+}
 
 function statusBadge(s) {
   switch (s) {
@@ -70,6 +107,26 @@ function taskResult(t) {
           {{ stepStatus(t).text }}
         </span>
         <span v-if="taskResult(t)" class="step-result">{{ taskResult(t) }}</span>
+        <div v-if="needsInline(t)" class="inline-confirm">
+          <table v-if="t.preview && t.preview.length" class="diff-table">
+            <thead>
+              <tr><th>位置</th><th>原值</th><th>新值</th></tr>
+            </thead>
+            <tbody>
+              <tr v-for="(d, j) in t.preview" :key="j">
+                <td>第{{ d.row }}行{{ d.column }}列</td>
+                <td class="old">{{ d.old }}</td>
+                <td class="new">{{ d.new }}</td>
+              </tr>
+            </tbody>
+          </table>
+          <p v-if="actText(t)" class="act-text">{{ actText(t) }}</p>
+          <div v-else class="act-btns">
+            <button class="btn btn-danger btn-sm" @click="onApprove(t)">确认执行</button>
+            <button class="btn btn-sm" @click="onReject(t)">拒绝</button>
+            <button class="btn btn-sm" @click="onDefer(t)">稍后</button>
+          </div>
+        </div>
       </li>
     </ul>
   </div>
@@ -142,5 +199,43 @@ function taskResult(t) {
   padding-left: 28px;
   font-size: 12px;
   color: var(--color-text-secondary);
+}
+.inline-confirm {
+  width: 100%;
+  padding-left: 28px;
+  margin-top: 6px;
+}
+.diff-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+.diff-table th,
+.diff-table td {
+  border: 1px solid var(--color-border);
+  padding: 5px 8px;
+  text-align: left;
+}
+.diff-table th {
+  background: var(--color-bg);
+  font-weight: 600;
+}
+.diff-table .old {
+  color: var(--color-danger);
+  text-decoration: line-through;
+}
+.diff-table .new {
+  color: var(--color-success);
+  font-weight: 600;
+}
+.act-btns {
+  display: flex;
+  gap: 8px;
+}
+.act-text {
+  margin: 0;
+  font-size: 13px;
+  color: var(--color-primary);
 }
 </style>

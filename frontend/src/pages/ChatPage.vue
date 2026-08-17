@@ -13,14 +13,16 @@ const pendingContext = ref(null)
 const sending = ref(false)
 const pendingCount = ref(0)
 
-onMounted(async () => {
+async function refreshPending() {
   try {
     const items = await listPending()
     pendingCount.value = items.length
   } catch {
     pendingCount.value = 0
   }
-})
+}
+
+onMounted(refreshPending)
 const listEl = ref(null)
 
 async function scrollToBottom() {
@@ -73,7 +75,7 @@ async function handleSubmit(text) {
       </div>
       <template v-for="(m, i) in messages.filter(Boolean)" :key="i">
         <div v-if="m.role === 'user'" class="bubble-user">{{ m.text }}</div>
-        <ResultCard v-else :message="m" />
+        <ResultCard v-else :message="m" @pending-change="refreshPending" />
       </template>
       <div v-if="sending" class="bubble-user bubble-typing">⏳ 处理中…</div>
     </div>
