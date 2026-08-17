@@ -400,7 +400,7 @@ onBeforeUnmount(() => {
 }
 .bottom-row {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 16px;
   align-items: start;
 }
@@ -502,6 +502,7 @@ onBeforeUnmount(() => {
 }
 .toolbar input {
   flex: 1;
+  min-width: 0;
   border: 1px solid var(--color-border);
   border-radius: 8px;
   padding: 7px 12px;
