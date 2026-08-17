@@ -18,7 +18,7 @@ from fastapi.responses import JSONResponse
 
 
 
-from backend.api.v1 import audit, auth, confirmation, task, user
+from backend.api.v1 import audit, auth, chat, confirmation, task, user
 
 import backend.tools  # noqa: F401 注册工具
 
@@ -39,9 +39,10 @@ setup_logging()
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     """启动时执行轻量幂等迁移（补齐新增列，不破坏现有数据）。"""
-    from backend.db import engine
+    from backend.db import Base, engine
     from backend.db_migrate import ensure_confirmations_preview
 
+    Base.metadata.create_all(bind=engine)  # 建缺失表（含 chat_messages），幂等
     ensure_confirmations_preview(engine)
     yield
 
@@ -71,6 +72,7 @@ app.include_router(task.router, prefix="/api/v1", tags=["task"])
 app.include_router(confirmation.router, prefix="/api/v1", tags=["confirmation"])
 
 app.include_router(user.router, prefix="/api/v1", tags=["user"])
+app.include_router(chat.router, prefix="/api/v1", tags=["chat"])
 app.include_router(audit.router, prefix="/api/v1", tags=["audit"])
 
 
