@@ -3,6 +3,28 @@
 每次调用起一次 stdio 会话（演示规模足够）；生产可改为常驻连接。
 """
 import asyncio
+import os
+import sys
+
+
+def _ensure_pywin32() -> None:
+    """mcp 在 Windows 依赖 pywintypes（pywin32）：按 pywin32.pth 补齐相关目录到 sys.path。"""
+    if os.name != "nt":
+        return
+    sp = os.path.join(sys.prefix, "Lib", "site-packages")
+    if not os.path.isdir(sp):
+        return
+    for rel in ("win32", os.path.join("win32", "lib"), "pythonwin", "pywin32_system32"):
+        p = os.path.join(sp, rel)
+        if os.path.isdir(p) and p not in sys.path:
+            sys.path.insert(0, p)
+    try:
+        import pywin32_bootstrap  # noqa: F401  注册 pywin32 DLL 搜索路径
+    except Exception:
+        pass
+
+
+_ensure_pywin32()
 
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
