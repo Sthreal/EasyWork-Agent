@@ -78,9 +78,22 @@ def test_plan_invalid_json_raises(monkeypatch):
     with pytest.raises(ValueError):
         planner.plan("随便说点什么")
 
-def test_planner_messages_include_tool_schema():
+
+def test_planner_messages_select_tools_by_intent():
     from backend.llm.messages import build_planner_messages
 
-    messages = build_planner_messages("读取报名表")
-    assert "参数 Schema" in messages[0]["content"]
-    assert "email" in messages[0]["content"]
+    content = build_planner_messages("读取报名表")[0]["content"]
+    schema_part = content.split("## 工具参数 Schema", 1)[1]
+    assert "本轮可用工具：sheets" in content
+    assert "write_by_key" in schema_part        # 只注入 sheets 的 schema
+    assert "mail_auth_code" not in schema_part  # email schema 未注入
+    assert "start_ts" not in schema_part        # calendar schema 未注入
+
+
+def test_planner_messages_all_tools_when_unknown():
+    from backend.llm.messages import build_planner_messages
+
+    content = build_planner_messages("随便做点什么")[0]["content"]
+    schema_part = content.split("## 工具参数 Schema", 1)[1]
+    assert "本轮可用工具：" in content
+    assert "mail_auth_code" in schema_part and "write_by_key" in schema_part and "start_ts" in schema_part

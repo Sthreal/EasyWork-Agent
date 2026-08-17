@@ -5,6 +5,7 @@ import re
 from backend.llm.client import LLMClient
 from backend.llm.messages import load_prompt
 from backend.models.task import Task
+from backend.tools.selector import select_tools
 
 MAX_STEPS = 3
 
@@ -34,7 +35,10 @@ def should_continue(task: Task, summary_text: str, step: int, max_steps: int = M
     if not client.available:
         return {"done": True, "tasks": []}
     system = load_prompt("continue.md")
-    user = f"任务原文：{task.text}\n已执行摘要：\n{summary_text}\n当前轮次：{step}"
+    user = (
+        f"任务原文：{task.text}\n本轮可用工具：{', '.join(select_tools(task.text))}\n"
+        f"已执行摘要：\n{summary_text}\n当前轮次：{step}"
+    )
     try:
         content = client.chat(
             [{"role": "system", "content": system}, {"role": "user", "content": user}],

@@ -2,7 +2,8 @@
 import json
 from pathlib import Path
 
-from backend.tools.registry import available_tools, get_tool
+from backend.tools.registry import get_tool
+from backend.tools.selector import select_tools
 
 _PROMPTS_DIR = Path(__file__).resolve().parents[2] / "config" / "prompts"
 
@@ -12,10 +13,10 @@ def load_prompt(name: str) -> str:
     return (_PROMPTS_DIR / name).read_text(encoding="utf-8").strip()
 
 
-def _tools_schema_text() -> str:
-    """把已注册工具的参数 Schema 拼进提示词，引导模型按 schema 生成 args。"""
+def _tools_schema_text(names: list[str]) -> str:
+    """把指定工具的参数 Schema 拼进提示词，引导模型按 schema 生成 args。"""
     lines = ["", "## 工具参数 Schema（严格按此生成 args）"]
-    for name in available_tools():
+    for name in names:
         tool = get_tool(name)
         if tool is None:
             continue
@@ -25,8 +26,13 @@ def _tools_schema_text() -> str:
 
 
 def build_planner_messages(user_text: str) -> list[dict]:
-    """组装意图拆解的对话上下文（含工具 Schema）。"""
-    system = load_prompt("planner.md") + _tools_schema_text()
+    """组装意图拆解的对话上下文：按意图只注入相关工具的 Schema。"""
+    selected = select_tools(user_text)
+    system = (
+        load_prompt("planner.md")
+        + f"\n本轮可用工具：{', '.join(selected)}\n"
+        + _tools_schema_text(selected)
+    )
     return [
         {"role": "system", "content": system},
         {"role": "user", "content": user_text},
