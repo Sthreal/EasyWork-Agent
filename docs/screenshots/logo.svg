@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-label="办公自动化 Agent logo">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#5B7A9C"/>
+      <stop offset="1" stop-color="#3F5A78"/>
+    </linearGradient>
+  </defs>
+
+  <!-- 圆角方形容器 -->
+  <rect x="16" y="16" width="224" height="224" rx="52" ry="52" fill="url(#bg)"/>
+
+  <!-- O：空心圆环（需求入口） -->
+  <circle cx="86" cy="128" r="34" fill="none" stroke="#FFFFFF" stroke-width="14"/>
+
+  <!-- 从 O 引出的分叉流程箭头（一个需求 → 多步执行） -->
+  <!-- 上支 -->
+  <path d="M120 128 L150 128" stroke="#A9C4E0" stroke-width="8" stroke-linecap="round" fill="none"/>
+  <path d="M150 128 L150 96 L176 96" stroke="#A9C4E0" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <path d="M170 88 L182 96 L170 104" stroke="#A9C4E0" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <!-- 下支 -->
+  <path d="M150 128 L150 160 L176 160" stroke="#A9C4E0" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <path d="M170 152 L182 160 L170 168" stroke="#A9C4E0" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+
+  <!-- A：字母 A（执行落点） -->
+  <path d="M188 176 L206 176 L197 150 Z" fill="none" stroke="#FFFFFF" stroke-width="14" stroke-linejoin="round" stroke-linecap="round"/>
+  <path d="M192 170 L202 170" stroke="#FFFFFF" stroke-width="10" stroke-linecap="round"/>
+</svg>
