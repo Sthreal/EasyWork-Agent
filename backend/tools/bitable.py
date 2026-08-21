@@ -53,6 +53,7 @@ class BitableTool(BaseTool):
             f"{FEISHU_OPEN_BASE}/bitable/v1/apps/{app_token}/tables",
             headers=self._headers(self._token(user_id)),
             timeout=15,
+            trust_env=False,
         )
         data = _unwrap(resp, "列出多维表格")
         items = [{"table_id": t["table_id"], "name": t.get("name", "")} for t in data["data"].get("items", [])]
@@ -63,6 +64,7 @@ class BitableTool(BaseTool):
             f"{FEISHU_OPEN_BASE}/bitable/v1/apps/{app_token}/tables/{table_id}/records",
             headers=self._headers(self._token(user_id)),
             timeout=15,
+            trust_env=False,
         )
         data = _unwrap(resp, "读取多维表格记录")
         items = [{"record_id": r["record_id"], "fields": r.get("fields", {})} for r in data["data"].get("items", [])]
@@ -74,6 +76,7 @@ class BitableTool(BaseTool):
             headers=self._headers(self._token(user_id)),
             json={"fields": fields},
             timeout=15,
+            trust_env=False,
         )
         data = _unwrap(resp, "新建多维表格记录")
         return ToolResult(ok=True, message="记录已创建", data={"record_id": data["data"]["record"]["record_id"]})
@@ -84,6 +87,7 @@ class BitableTool(BaseTool):
             headers=self._headers(self._token(user_id)),
             json={"fields": fields},
             timeout=15,
+            trust_env=False,
         )
         _unwrap(resp, "更新多维表格记录")
         return ToolResult(ok=True, message="记录已更新", data={"record_id": record_id})

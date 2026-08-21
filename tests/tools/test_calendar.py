@@ -27,7 +27,7 @@ def _fake_resp(payload, status=200):
 def test_create_success(monkeypatch):
     monkeypatch.setattr(calendar_tool, "get_valid_token", lambda db, user_id: FakeToken())
 
-    def fake_post(url, headers=None, json=None, timeout=None):
+    def fake_post(url, headers=None, json=None, timeout=None, **kwargs):
         assert "/calendar/v4/calendars/primary/events" in url
         assert json["summary"] == "测试日程"
         assert json["start_time"]["timezone"] == "Asia/Shanghai"
@@ -50,7 +50,7 @@ def test_create_missing_params():
 def test_update_success(monkeypatch):
     monkeypatch.setattr(calendar_tool, "get_valid_token", lambda db, user_id: FakeToken())
 
-    def fake_patch(url, headers=None, json=None, timeout=None):
+    def fake_patch(url, headers=None, json=None, timeout=None, **kwargs):
         assert "evt_123" in url
         assert json["summary"] == "新主题"
         return _fake_resp({"code": 0, "data": {"event": {"event_id": "evt_123", "summary": "新主题"}}})

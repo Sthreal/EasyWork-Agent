@@ -32,6 +32,7 @@ class LLMClient:
             },
             json={"model": self.model, "messages": messages, "temperature": temperature},
             timeout=30,
+            trust_env=False,  # 忽略失效环境代理，直连
         )
         resp.raise_for_status()
         body = resp.json()

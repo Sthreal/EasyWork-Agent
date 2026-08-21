@@ -31,6 +31,7 @@ class FeishuClient:
                 "redirect_uri": settings.feishu_redirect_uri,
             },
             timeout=10,
+            trust_env=False,
         )
         body = _unwrap(resp, "换取 user_access_token")
         return {
@@ -50,6 +51,7 @@ class FeishuClient:
                 "refresh_token": refresh_token,
             },
             timeout=10,
+            trust_env=False,
         )
         body = _unwrap(resp, "刷新 user_access_token")
         return {
@@ -64,6 +66,7 @@ class FeishuClient:
             f"{FEISHU_OPEN_BASE}/authen/v1/user_info",
             headers={"Authorization": f"Bearer {access_token}"},
             timeout=10,
+            trust_env=False,
         )
         data = _unwrap(resp, "获取用户信息")["data"]
         return {

@@ -131,6 +131,7 @@ class CalendarTool(BaseTool):
                 params={"start_time": str(start), "end_time": str(end)},
                 headers=self._headers(self._access_token(user_id)),
                 timeout=15,
+                trust_env=False,
             )
             data = _unwrap(resp, "读取日历事件")
             items = [
@@ -209,6 +210,7 @@ class CalendarTool(BaseTool):
 
 
                 timeout=15,
+                trust_env=False,
 
 
             )
@@ -257,6 +259,7 @@ class CalendarTool(BaseTool):
 
 
                 timeout=15,
+                trust_env=False,
 
 
             )
