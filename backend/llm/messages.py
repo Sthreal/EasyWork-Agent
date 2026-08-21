@@ -2,6 +2,7 @@
 import json
 from pathlib import Path
 
+from backend.ontology.registry import objects_prompt
 from backend.tools.registry import get_tool
 from backend.tools.selector import select_tools
 
@@ -26,10 +27,11 @@ def _tools_schema_text(names: list[str]) -> str:
 
 
 def build_planner_messages(user_text: str) -> list[dict]:
-    """组装意图拆解的对话上下文：按意图只注入相关工具的 Schema。"""
+    """组装意图拆解的对话上下文：注入业务对象描述 + 按意图只注入相关工具的 Schema。"""
     selected = select_tools(user_text)
     system = (
         load_prompt("planner.md")
+        + objects_prompt(selected)
         + f"\n本轮可用工具：{', '.join(selected)}\n"
         + _tools_schema_text(selected)
     )
