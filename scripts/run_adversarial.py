@@ -24,7 +24,7 @@ def main() -> int:
     for cat, info in report["by_category"].items():
         print(f"  [{cat}] {info['passed']}/{info['total']}")
         for item in info["items"]:
-            mark = "✅" if item["verdict"]["pass"] else "❌"
+            mark = "[PASS]" if item["verdict"]["pass"] else "[FAIL]"
             print(f"    {mark} {item['name']} — {item['verdict']['reason']}")
     print("=" * 60)
     return 0 if report["passed"] == report["total"] else 1
