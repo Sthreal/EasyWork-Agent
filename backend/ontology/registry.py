@@ -96,6 +96,19 @@ register_object(
 )
 register_object(
     ObjectType(
+        name="多维表格",
+        description="飞书多维表格：列出表格/读取记录/新建记录/更新记录",
+        source="飞书多维表格（Bitable）",
+        operations=[
+            Operation("list_tables", "列出多维表格下的数据表", tool="bitable", action="list_tables"),
+            Operation("list_records", "读取数据表的记录", tool="bitable", action="list_records"),
+            Operation("create_record", "新建记录（高危，需确认）", high_risk=True, tool="bitable", action="create_record"),
+            Operation("update_record", "更新记录（高危，需确认）", high_risk=True, tool="bitable", action="update_record"),
+        ],
+    )
+)
+register_object(
+    ObjectType(
         name="日历",
         description="飞书日历：创建/修改日程",
         source="飞书日历 API",

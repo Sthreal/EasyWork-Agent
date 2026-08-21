@@ -10,6 +10,8 @@ def validate_args(tool: str, args: dict) -> tuple[bool, str]:
         return _validate_sheets(args)
     if tool == "calendar":
         return _validate_calendar(args)
+    if tool == "bitable":
+        return _validate_bitable(args)
     return True, ""
 
 
@@ -75,6 +77,26 @@ def _validate_calendar(args: dict) -> tuple[bool, str]:
             return False, "日程 ID 不能为空"
         if not isinstance(args.get("summary"), str) or not args["summary"].strip():
             return False, "日程主题不能为空"
+    return True, ""
+
+
+def _validate_bitable(args: dict) -> tuple[bool, str]:
+    action = args.get("action", "")
+    app_token = args.get("app_token")
+    if not isinstance(app_token, str) or not app_token.strip():
+        return False, "app_token 不能为空"
+    if action in ("list_records", "create_record", "update_record"):
+        table_id = args.get("table_id")
+        if not isinstance(table_id, str) or not table_id.strip():
+            return False, "table_id 不能为空"
+    if action in ("create_record", "update_record"):
+        fields = args.get("fields")
+        if not isinstance(fields, dict) or not fields:
+            return False, "fields 必须是非空对象"
+    if action == "update_record":
+        record_id = args.get("record_id")
+        if not isinstance(record_id, str) or not record_id.strip():
+            return False, "record_id 不能为空"
     return True, ""
 
 
