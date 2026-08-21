@@ -2,8 +2,9 @@
 ALLOWED_OPERATIONS = {
     "email": {"send", "read"},
     "sheets": {"read", "write", "write_by_key", "aggregate"},
-    "calendar": {"create", "update"},
+    "calendar": {"create", "update", "list"},
     "bitable": {"list_tables", "list_records", "create_record", "update_record"},
+    "weekly_report": {"generate"},
 }
 
 

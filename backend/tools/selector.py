@@ -7,6 +7,7 @@ _TOOL_KEYWORDS: dict[str, tuple[str, ...]] = {
     "sheets": ("表格", "报名表", "名单", "excel", "csv", "单元格", "表头", "工作表", "统计", "分布", "人数", "合计", "汇总", "图表", "占比"),
     "calendar": ("会议", "日程", "日历", "预约", "参会", "空闲", "calendar"),
     "bitable": ("多维表格", "bitable", "表格记录"),
+    "weekly_report": ("周报", "周总结", "工作周报", "weekly"),
     "mcp_get_weather": ("天气", "气温", "下雨", "预报", "温度", "weather"),
 }
 

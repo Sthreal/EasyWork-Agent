@@ -14,6 +14,7 @@ REQUIRED_ARGS = {
     "sheets": {"write": ["filename", "changes"], "read": ["filename"], "write_by_key": ["filename", "key_column", "key_value", "field", "value"], "aggregate": ["filename", "group_by", "agg"]},
     "calendar": {"create": ["summary", "start_ts", "end_ts"], "update": ["event_id", "summary"]},
     "bitable": {"list_tables": ["app_token"], "list_records": ["app_token", "table_id"], "create_record": ["app_token", "table_id", "fields"], "update_record": ["app_token", "table_id", "record_id", "fields"]},
+    "weekly_report": {"generate": []},
 }
 
 

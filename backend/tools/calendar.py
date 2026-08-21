@@ -54,10 +54,11 @@ class CalendarTool(BaseTool):
     args_schema = {
         "type": "object",
         "required": ["action"],
-        "properties": {"action": {"type": "string", "enum": ["create", "update"]}},
+        "properties": {"action": {"type": "string", "enum": ["create", "update", "list"]}},
         "oneOf": [
             {"properties": {"action": {"const": "create"}, "summary": {"type": "string"}, "start_ts": {"type": "string"}, "end_ts": {"type": "string"}, "description": {"type": "string"}, "user_id": {"type": "integer"}}, "required": ["action", "summary", "start_ts", "end_ts"]},
             {"properties": {"action": {"const": "update"}, "event_id": {"type": "string"}, "summary": {"type": "string"}, "user_id": {"type": "integer"}}, "required": ["action", "event_id", "summary"]},
+            {"properties": {"action": {"const": "list"}, "days": {"type": "integer"}, "user_id": {"type": "integer"}}, "required": ["action"]},
         ],
     }  # 更新/修改/删除由高危关键词判定
 
@@ -68,6 +69,8 @@ class CalendarTool(BaseTool):
     def execute(self, action: str = "", **kwargs) -> ToolResult:
 
 
+        if action == "list":
+            return self.list(user_id=int(kwargs.get("user_id") or 1), days=int(kwargs.get("days") or 7))
         if action == "create":
 
 
@@ -115,6 +118,32 @@ class CalendarTool(BaseTool):
 
 
 
+
+    def list(self, user_id: int = 1, days: int = 7) -> ToolResult:
+        """读取未来 N 天的日程（周报/汇总用，只读不高危）。"""
+        from datetime import datetime, timedelta
+
+        start = int(datetime.now().timestamp())
+        end = int((datetime.now() + timedelta(days=days)).timestamp())
+        try:
+            resp = httpx.get(
+                f"{FEISHU_OPEN_BASE}/calendar/v4/calendars/primary/events",
+                params={"start_time": str(start), "end_time": str(end)},
+                headers=self._headers(self._access_token(user_id)),
+                timeout=15,
+            )
+            data = _unwrap(resp, "读取日历事件")
+            items = [
+                {
+                    "summary": e.get("summary", ""),
+                    "start": e.get("start_time", {}).get("timestamp", ""),
+                    "end": e.get("end_time", {}).get("timestamp", ""),
+                }
+                for e in data["data"].get("items", [])
+            ]
+            return ToolResult(ok=True, message=f"读取 {len(items)} 个日程", data={"events": items})
+        except Exception as exc:  # noqa: BLE001
+            return ToolResult(ok=False, message=f"读取日历失败：{exc}")
 
     def _access_token(self, user_id: int) -> str:
 

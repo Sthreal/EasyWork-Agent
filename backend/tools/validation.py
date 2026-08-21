@@ -12,6 +12,10 @@ def validate_args(tool: str, args: dict) -> tuple[bool, str]:
         return _validate_calendar(args)
     if tool == "bitable":
         return _validate_bitable(args)
+    if tool == "weekly_report":
+        if args.get("action") not in ("generate",):
+            return False, "周报只支持 generate 动作"
+        return True, ""
     return True, ""
 
 
