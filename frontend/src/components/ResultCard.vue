@@ -86,6 +86,17 @@ function taskResult(t) {
   }
 }
 
+function taskBody(t) {
+  if (!t || !t.result) return ''
+  try {
+    const r = JSON.parse(t.result)
+    const text = r.data && r.data.text
+    return typeof text === 'string' && text.trim() ? text : ''
+  } catch {
+    return ''
+  }
+}
+
 function stepChart(t) {
   if (!t || !t.result) return null
   try {
@@ -118,6 +129,7 @@ function stepChart(t) {
           {{ stepStatus(t).text }}
         </span>
         <span v-if="taskResult(t)" class="step-result">{{ taskResult(t) }}</span>
+        <div v-if="taskBody(t)" class="step-body">{{ taskBody(t) }}</div>
         <div v-if="needsInline(t)" class="inline-confirm">
           <table v-if="t.preview && t.preview.length" class="diff-table">
             <thead>
@@ -207,6 +219,19 @@ function stepChart(t) {
 .step-action {
   flex: 1;
   min-width: 0;
+}
+.step-body {
+  width: 100%;
+  margin: 8px 0 0 28px;
+  padding: 10px 12px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border-light);
+  border-radius: 8px;
+  font-size: 12px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--color-text);
 }
 .step-result {
   width: 100%;
