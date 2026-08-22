@@ -61,6 +61,9 @@
 - Agent 通过标准 MCP 协议发现并调用外部 MCP server 的工具，适配进自研 Registry、走同一套审计
 - 演示源为本地 mock（`backend/mcp/mock_server.py`），生产接真实 MCP server 只改连接地址
 
+🔬 **安全测试（对抗测试 Agent）**
+- 红队角色：预置 25 条对抗用例（prompt 注入 / 高危误判 / 模糊意图 / 缺参越权 / 极端输入 / 矛盾指令 / 数据外泄）攻击主 Agent
+- 验证确认闸门、白名单、反问澄清、参数校验、审计真的兜得住；`python scripts/run_adversarial.py` 输出 7 类分类报告（当前 25/25 通过）
 ⚙️ **工程化**
 - 141+ 自动化测试（20 黄金 Case / 3 类评分器 / Trace，见 `docs/自动化测试方案.md`）
 - 切片开发：每片「接口 → 逻辑 → 工具 → 返回 → 测试」，可运行可回滚
